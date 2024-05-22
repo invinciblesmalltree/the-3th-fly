@@ -1,0 +1,13 @@
+<launch>
+    <include file="$(find mavros)/launch/px4_ACM0.launch" />
+    <param name="delay" type="int" value="10"/>
+    <include file="$(find livox_ros_driver2)/launch_ROS1/msg_MID360.launch" />
+    <param name="delay" type="int" value="10"/>
+    <include file="$(find fast_lio)/launch/mapping_mid360.launch" />
+    <param name="delay" type="int" value="5"/>
+    <node pkg="ros_tools" type="lidar_to_mavros" name="lidar_to_mavros" />
+    <param name="delay" type="int" value="5"/>
+    <node pkg="ros_tools" type="lidar_data_node" name="lidar_data_node" />
+    <param name="delay" type="int" value="2"/>
+    <node pkg="offboard" type="offboard_node" name="offboard_node" output="screen" />
+</launch>
