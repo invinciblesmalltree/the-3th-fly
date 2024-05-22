@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
     int mode = 0;
     int n = 0;
 
-    while (ros::ok) {
+    while (ros::ok()) {
         if (!current_state.armed &&
             (ros::Time::now() - last_request > ros::Duration(1.0))) {
             if (arming_client.call(arm_cmd) && arm_cmd.response.success) {
