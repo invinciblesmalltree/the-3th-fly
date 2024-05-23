@@ -47,12 +47,12 @@ class region
 {
     public:
         float center_x, center_y, length, width;
-        bool flag = false; // 是否已经经过
+        bool flag = false; // 是否已经过
         int scan_mode=1;
 
         region(float center_x, float center_y, float length, float width):center_x(center_x),center_y(center_y),length(length),width(width) {}
 
-        void fly_to_scan(ros::Publisher &local_pos_pub)
+        void fly_to_scan(ros::Publisher &local_pos_pub, lidar_data::LidarPose &lidar_pose_data, geometry_msgs::TwistStamped vel_msg, int &mode, cv_detect::BarMsg barcode_data, ros::Rate &rate)
         {
             switch(scan_mode)
             {
@@ -67,11 +67,11 @@ class region
                         scan_mode = 2;
                     }
                 case 2: // 向下扫码, 判断奇偶并返回scan点
-                    if(barcode_data != -1 && barcode_data%2 == 1)
+                    if(barcode_data.n != -1 && barcode_data.n%2 == 1)
                     {
                         scan_mode = 3; //奇数投掷
                     }
-                    else if(barcode_data != -1 && barcode_data%2 == 0)
+                    else if(barcode_data.n != -1 && barcode_data.n%2 == 0)
                     {
                         while(!scanPoint.pos_check(lidar_pose_data))
                         {
@@ -103,27 +103,26 @@ class region
             }
         }
 
-}
+};
 
-bool check_region()
+bool check_region(lidar_data::LidarPose &lidar_pose_data, std::vector<region> &regions)
 {
     float box_distance = 100; // 无穷远
     int box_num = -1;
     for(size_t i=0; i<regions.size(); i++)
     {
-        if(box_distance > sqrt(pow(lidar_pose_data.x - regions[i].x, 2) +
-                                    pow(lidar_pose_data.y - regions[i].y, 2) +
-                                    pow(lidar_pose_data.z - regions[i].z, 2)))
+        if(box_distance > sqrt(pow(lidar_pose_data.x - regions[i].center_x, 2) +
+                               pow(lidar_pose_data.y - regions[i].center_y, 2)))
         { box_num=i; current_region = i;}
     }
-    if(region[box_num].flag)
+    if(regions[box_num].flag)
     {
         return false;
     }
     else
     {
         regions[box_num].flag = true;
-        return ture;
+        return true;
     }
 }
 
@@ -132,8 +131,23 @@ float vector2theta(float x, float y) {
     return angle < 0 ? angle += 2 * M_PI : angle;
 }
 
-void handle_init()
-{
+mavros_msgs::State current_state;
+lidar_data::LidarPose lidar_pose_data;
+cv_detect::LedMsg box_data; // TODO: cv消息修改为box_data
+cv_detect::BarMsg barcode_data;
+std_msgs::Int32 supersonic_data;
+geometry_msgs::TwistStamped vel_msg;
+
+std::vector<target> targets;
+std::vector<region> regions;
+
+void state_cb(const mavros_msgs::State::ConstPtr &msg) { current_state = *msg; }
+void lidar_cb(const lidar_data::LidarPose::ConstPtr &msg) { lidar_pose_data = *msg; }
+void led_cb(const cv_detect::LedMsg::ConstPtr &msg) { box_data = *msg; }
+void barcode_cb(const cv_detect::BarMsg::ConstPtr &msg) { barcode_data = *msg; }
+void supersonic_cb(const std_msgs::Int32::ConstPtr &msg) { supersonic_data = *msg; }
+
+int main(int argc, char **argv) {
     ros::init(argc, argv, "offb_node");
     ros::NodeHandle nh;
 
@@ -147,23 +161,6 @@ void handle_init()
     ros::ServiceClient arming_client = nh.serviceClient<mavros_msgs::CommandBool>("mavros/cmd/arming");
     ros::ServiceClient set_mode_client = nh.serviceClient<mavros_msgs::SetMode>("mavros/set_mode");
     ros::Rate rate(20.0);
-}
-
-mavros_msgs::State current_state;
-lidar_data::LidarPose lidar_pose_data;
-cv_detect::LedMsg box_data; // TODO: cv消息修改为box_data
-cv_detect::BarMsg barcode_data;
-std_msgs::Int32 supersonic_data;
-geometry_msgs::TwistStamped vel_msg;
-
-void state_cb(const mavros_msgs::State::ConstPtr &msg) { current_state = *msg; }
-void lidar_cb(const lidar_data::LidarPose::ConstPtr &msg) { lidar_pose_data = *msg; }
-void led_cb(const cv_detect::LedMsg::ConstPtr &msg) { blue_data = *msg; }
-void barcode_cb(const cv_detect::BarMsg::ConstPtr &msg) { barcode_data = *msg; }
-void supersonic_cb(const std_msgs::Int32::ConstPtr &msg) { supersonic_data = *msg; }
-
-int main(int argc, char **argv) {
-    handle_init();
 
     std::vector<target> targets = {
         target(0, 0, 1.8, 0),      target(0, 3.4, 1.8, 0),
@@ -174,7 +171,7 @@ int main(int argc, char **argv) {
         target(0.65, 2.7, 1.8, 0), target(0.65, 0, 1.8, 0),
         target(0, 0, 1.8, 0),      target(0, 0, 0.5, 0)};
 
-    std:vector<region>regions = {
+    std::vector<region> regions = {
         region(3.05, -1.15, 0.90, 1.10),
         region(3.05, -2.70, 0.80, 0.80),
         region(3.05, -4.00, 0.80, 0.80),
@@ -197,6 +194,7 @@ int main(int argc, char **argv) {
 
     size_t target_index = 0;
     int mode = 1;
+    target debox_point(0, 0, 0, 0);
 
     // 起飞前检查
     while (!current_state.armed || current_state.mode != "OFFBOARD")
@@ -237,7 +235,7 @@ int main(int argc, char **argv) {
                     {
                         targets[target_index].fly_to_target(local_pos_pub);
                     }
-                    else if (box_data.value && check_region())
+                    else if (box_data.value && check_region(lidar_pose_data, regions))
                     {
                         mode = 2;
                     }
@@ -259,10 +257,11 @@ int main(int argc, char **argv) {
                 {
                     ROS_INFO("Mode 2");
                     ROS_INFO("Box detected!");
-                    ROS_INFO("Box: (%f, %f)", regions[current_region].center_x, regions[current_region].center_y);
-                    static target debox_point(lidar.pose_data.x, lidar.pose_data.y, lidar.pose_data.z, 0);
+                    ROS_INFO("Box: (%f, %f)", 
+                            regions[current_region].center_x, regions[current_region].center_y);
+                    target debox_point(lidar_pose_data.x, lidar_pose_data.y, lidar_pose_data.z, 0);
 
-                    regions[current_region].fly_to_scan(local_pos_pub);
+                    regions[current_region].fly_to_scan(local_pos_pub, lidar_pose_data, vel_msg, mode, barcode_data, rate);
                 }
             case 3: // 返回路线继续巡防
                 {
