@@ -7,7 +7,13 @@ project(vision)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED)
+find_package(catkin REQUIRED COMPONENTS
+    rospy
+    sensor_msgs
+    std_msgs
+    cv_bridge
+    message_generation
+)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -48,6 +54,10 @@ find_package(catkin REQUIRED)
 #   Message1.msg
 #   Message2.msg
 # )
+add_message_files(
+    FILES
+    box_data.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -55,6 +65,10 @@ find_package(catkin REQUIRED)
 #   Service1.srv
 #   Service2.srv
 # )
+generate_messages(
+    DEPENDENCIES
+    std_msgs
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -114,6 +128,7 @@ catkin_package(
 include_directories(
 # include
 # ${catkin_INCLUDE_DIRS}
+    ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -159,6 +174,10 @@ include_directories(
 #   scripts/my_python_script
 #   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )
+catkin_install_python(
+    PROGRAMS scripts/box_detect.py
+    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
