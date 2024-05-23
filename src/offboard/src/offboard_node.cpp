@@ -74,17 +74,21 @@ int main(int argc, char **argv) {
                 ROS_INFO("Vehicle armed");
             }
             last_request = ros::Time::now();
-        } else {
-            if (current_state.mode != "OFFBOARD" &&
-                (ros::Time::now() - last_request > ros::Duration(1.0))) {
-                if (set_mode_client.call(offb_set_mode) &&
-                    offb_set_mode.response.mode_sent) {
-                    ROS_INFO("Offboard enabled");
-                    ROS_INFO("Mode: %s", current_state.mode.c_str());
-                    break;
-                }
-                last_request = ros::Time::now();
+        } else if (current_state.mode != "OFFBOARD" &&
+                   (ros::Time::now() - last_request > ros::Duration(1.0))) {
+            if (set_mode_client.call(offb_set_mode) &&
+                offb_set_mode.response.mode_sent) {
+                ROS_INFO("Offboard enabled");
+                geometry_msgs::PoseStamped pose;
+                pose.pose.position.x = 0;
+                pose.pose.position.y = 0;
+                pose.pose.position.z = 0.5;
+                local_pos_pub.publish(pose);
             }
+            last_request = ros::Time::now();
+        }
+        if (current_state.armed && current_state.mode == "OFFBOARD") {
+            break;
         }
         ros::spinOnce();
         rate.sleep();
@@ -97,6 +101,8 @@ int main(int argc, char **argv) {
                 mavros_msgs::CommandLong command_srv;
                 command_srv.request.broadcast = false;
                 command_srv.request.command = 21;
+                command_srv.request.confirmation = 0;
+                command_srv.request.param4 = 0;
                 if (command_client.call(command_srv) &&
                     command_srv.response.success) {
                     ROS_INFO("Land command sent successfully");
