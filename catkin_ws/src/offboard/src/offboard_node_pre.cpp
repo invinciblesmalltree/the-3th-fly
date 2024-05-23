@@ -11,7 +11,7 @@
 #include <std_msgs/Int32.h>
 #include <vector>
 
-class target 
+class target
 {
   public:
     float x, y, z, yaw;
@@ -45,13 +45,15 @@ class region
 {
     public:
         float center_x, center_y, length, width;
+        bool flag = false; // 是否已经经过
+
         region(float center_x, float center_y, float length, float width):center_x(center_x),center_y(center_y),length(length),width(width) {}
 
         void fly_to_top(ros::Publisher &local_pos_pub)
         {
             target top(center_x, center_y, 1.8, 0.0);
-            top.fly_to_target(local_pos_pub); // TODO：此时无人机方向需要校准朝北
-            while(!top.pos_check(lidar_pose_data))
+            top.fly_to_target(local_pos_pub);
+            if(!top.pos_check(lidar_pose_data))
             {
                 top.fly_to_target(local_pos_pub);
             }
@@ -59,24 +61,35 @@ class region
 
         void fly_to_scan(ros::Publisher &local_pos_pub)
         {
-            target scanPoint(center_x, center_y, 1.5, -M_PI); // 起飞朝南，扫码朝北
+            target scanPoint(center_x+0.5, center_y, 1.2, 0); // 起飞朝南，d435扫码朝北
             scanPoint.fly_to_target(local_pos_pub);
-            while(!scanPoint.pos_check(lidar_pose_data))
+            if(!scanPoint.pos_check(lidar_pose_data))
             {
                 scanPoint.fly_to_target(local_pos_pub);
             }
+            else
+            {
+                if (barcode_data%2==1)
+                {
+                        has_scaned_firstBox = true;
+                        fly_to_top(local_pos_pub);
+                        /*
+                        ** TODO: 投掷
+                        */
+                }
+            }
+        }
 
-            /*
-            ** TODO：扫码
-            */
-
-           if (barcode_data%2==1)
-           {
-                fly_to_top(local_pos_pub)
-                /*
-                ** TODO: 投掷
-                */
-           }
+        void check_region()
+        {
+            float box_distance = 0;
+            for(size_t i=0; i<regions.size(); i++)
+            {
+                if(box_distance <= sqrt(pow(lidar_pose_data.x - regions[i].x, 2) +
+                                         pow(lidar_pose_data.y - regions[i].y, 2) +
+                                         pow(lidar_pose_data.z - regions[i].z, 2)))
+                { regions[i].flag=true; }
+            }
         }
 }
 
@@ -114,21 +127,21 @@ int main(int argc, char **argv) {
     ros::Rate rate(20.0);
 
     std::vector<target> targets = {
-        target(0.00, 0.00, 1.80, 0.00),
-        target(0.00, 0.00, 1.80, 0.00),
-        target(0.00, 0.00, 1.80, 0.00),
-        target(0.00, 0.00, 1.80, 0.00),
-        target(0.00, 0.00, 1.80, 0.00),
-        target(0.00, 0.00, 1.80, 0.00),
-        target(0.00, 0.00, 1.80, 0.00),};
+        target(0, 0, 1.8, 0),      target(0, 3.4, 1.8, 0),
+        target(3.75, 3.4, 1.8, 0), target(3.75, 0, 1.8, 0),
+        target(3.05, 0, 1.8, 0),   target(3.05, 2.7, 1.8, 0),
+        target(2.25, 2.7, 1.8, 0), target(2.25, 0, 1.8, 0),
+        target(1.5, 0, 1.8, 0),    target(1.5, 2.7, 1.8, 0),
+        target(0.65, 2.7, 1.8, 0), target(0.65, 0, 1.8, 0),
+        target(0, 0, 1.8, 0),      target(0, 0, 0.5, 0)};
 
     std:vector<region>regions = {
-        region(0.00, 0.00, 0.00, 0.00),
-        region(0.00, 0.00, 0.00, 0.00),
-        region(0.00, 0.00, 0.00, 0.00),
-        region(0.00, 0.00, 0.00, 0.00),
-        region(0.00, 0.00, 0.00, 0.00),
-        region(0.00, 0.00, 0.00, 0.00),};
+        region(3.05, -1.15, 0.90, 1.10),
+        region(3.05, -2.70, 0.80, 0.80),
+        region(3.05, -4.00, 0.80, 0.80),
+        region(1.55, -1.00, 0.90, 0.80),
+        region(1.55, -2.55, 0.90, 0.80),
+        region(1.25, -4.10, 1.50, 0.80)};
 
     while (ros::ok() && !current_state.connected) {
         ros::spinOnce();
@@ -145,9 +158,8 @@ int main(int argc, char **argv) {
 
     size_t target_index = 0;
     int mode = 1;
-    int n = 0;
-    bool has_passed_firstBox = false;
-    bool has_passed_secondBox = false;
+    bool has_scaned_firstBox = false;
+    bool has_scaned_secondBox = false;
 
     // 起飞前检查
     while (!current_state.armed || current_state.mode != "OFFBOARD")
@@ -181,7 +193,7 @@ int main(int argc, char **argv) {
     {
         switch(mode)
         {
-            case 1: // 正常巡线
+            case 1: // 定点巡防
                 {
                     ROS_INFO("Mode 1");
                     if(!targets[target_index].pos_check(lidar_pose_data))
@@ -206,50 +218,38 @@ int main(int argc, char **argv) {
                         break;
                     }
                 }
-            case 2: // 扫码投掷
+                case 2: // 找码代码
                 {
                     ROS_INFO("Mode 2");
-
-                    ROS_INFO("Box detected!");
-                    ROS_INFO("Box: (%f, %f)", regions[n].center_x, regions[n].center_y);
-                    while (!regions[n].fly_to_scan(local_pos_pub))
-                    {
-                        regions[n].fly_to_scan(local_pos_pub);
-                    }
-                    blue_point.fly_to_target(local_pos_pub);
-                    if (!has_passed_blue && (ros::Time::now() - last_request > ros::Duration(6.0))) { has_passed_blue = true; }
-                    if (has_passed_blue)
-                        if (!first_scan_point.pos_check(lidar_pose_data))
-                        {
-                            first_scan_point.fly_to_target(local_pos_pub);
-                        }
-                        else{ mode = 3; }
-                }
-            case 3: // 找杆代码
-                {
-                    ROS_INFO("Mode 3");
-                    if (!scan_point.pos_check(lidar_pose_data))
+                     
+                    if (!scan_point.reached) 
                     {
                         scan_point.fly_to_target(local_pos_pub);
-                    }
-                    else //发布线速度寻杆
+                        float distance = sqrt(pow(lidar_pose_data.x - scan_point.x, 2) +
+                                            pow(lidar_pose_data.y - scan_point.y, 2) +
+                                            pow(lidar_pose_data.z - scan_point.z, 2));
+                        if (distance < 0.1)
+                            scan_point.reached = true;
+                    } 
+                    else
                     {
                         vel_msg.twist.linear.x = 0;
-                        if (barcode_data.delta_x > 500)
-                            vel_msg.twist.linear.y = 0;
-                        else
-                            vel_msg.twist.linear.y =
+                    }
+                    if (barcode_data.delta_x > 500)
+                        vel_msg.twist.linear.y = 0;
+                    else
+                        vel_msg.twist.linear.y =
                                 barcode_data.delta_x > 0 ? 0.1 : -0.1;
                         vel_msg.twist.linear.z = 0;
                         velocity_pub.publish(vel_msg);
                         ROS_INFO("Supersonic data: %dcm", supersonic_data.data);
 
-                        if (abs(barcode_data.delta_x) < 50)
-                        {
-                            if (supersonic_data.data > 100)
-                                supersonic_data.data = 50;
-
-                            pole_point.x = lidar_pose_data.x - supersonic_data.data / 100.0 - 0.225;
+                    if (abs(barcode_data.delta_x) < 50) 
+                    {
+                        if (supersonic_data.data > 100)
+                            supersonic_data.data = 50;
+                            pole_point.x = lidar_pose_data.x -
+                                        supersonic_data.data / 100.0 - 0.225;
                             pole_point.y = lidar_pose_data.y;
                             pole_point.z = 1.25;
                             pole_point.yaw = lidar_pose_data.yaw;
@@ -261,85 +261,51 @@ int main(int argc, char **argv) {
                             round_point.y = pole_point.y;
                             round_point.z = 1.25;
                             round_point.yaw = -M_PI;
-
-                            mode = 4;
+                            mode = 3;
                             ROS_INFO("Pole: (%f, %f)", pole_point.x, pole_point.y);
-                        }
+                            ROS_INFO("Mode 3");
                     }
+
+                    static target debox_point(0, 0, 0, 0);
+                    debox_point.x=lidar.pose_data.x;
+                    debox_point.y=lidar.pose_data.y;
+                    debox_point.z=lidar.pose_data.z;
+                    ROS_INFO("Box detected!");
+
+                    //TODO：判断箱子属于哪个region
+                    ROS_INFO("Box: (%f, %f)", regions[n].center_x, regions[n].center_y);
+                    box_point
+                    if (!regions[n].fly_to_scan(local_pos_pub))
+                    {
+                        regions[n].fly_to_scan(local_pos_pub);
+                    }
+                    else{ mode = 4; }
                 }
-            case 4: // 扫码代码
+            case 3: // 扫码投掷
+                {
+                    ROS_INFO("Mode 3");
+                    static target debox_point(0, 0, 0, 0);
+                    debox_point.x=lidar.pose_data.x;
+                    ROS_INFO("Box detected!");
+                    //TODO：判断箱子属于哪个region
+                    ROS_INFO("Box: (%f, %f)", regions[n].center_x, regions[n].center_y);
+                    box_point
+                    if (!regions[n].fly_to_scan(local_pos_pub))
+                    {
+                        regions[n].fly_to_scan(local_pos_pub);
+                    }
+                    else{ mode = 4; }
+                }
+            case 4: // 返回路线继续巡防
                 {
                     ROS_INFO("Mode 4");
-                    if (!scan_point.pos_check(lidar_pose_data)) 
+                    if (!debox_point.pos_check(lidar_pose_data))
                     {
-                        scan_point.fly_to_target(local_pos_pub);
-                    }
-                    else
-                    {
-                        if (barcode_data.n != -1)
-                        {
-                            n = barcode_data.n;
-                            ROS_INFO("Barcode: %d", n);
-                            targets.pop_back(); // 移除vector最后元素
-                            targets.pop_back();
-                            targets.pop_back();
-                            targets.pop_back();
-                            targets.push_back(target(n * 0.1, -2.0, 1.25, -M_PI)); // 向容器添加新元素
-                            targets.push_back(target(n * 0.1, -2.0, 0.7, -M_PI));
-                            targets.push_back(target(n * 0.1, -2.0, 0.1, -M_PI));
-
-                            mode = 5;
-                        }
-                    }
-                }
-            case 5: // 绕杆代码
-                {
-                    ROS_INFO("Mode 5");
-                    if (!round_point.pos_check(lidar_pose_data))
-                    {
-                        round_point.fly_to_target(local_pos_pub);
-                    }
-                    else
-                    {
-                        if (lidar_pose_data.yaw > 11 * M_PI / 6)
-                        {
-                            has_passed_half = true;
-                            ROS_INFO("Half passed");
-                        }
-                        if (has_passed_half && lidar_pose_data.yaw < M_PI)
-                        {
-                            mode = 6;
-                            ROS_INFO("Full passed");
-                        }
-                        float angle_to_target = vector2theta(pole_point.x - lidar_pose_data.x, pole_point.y - lidar_pose_data.y);
-                        float angular_angle = angle_to_target - lidar_pose_data.yaw;
-                        if (angular_angle > M_PI)
-                            angular_angle -= 2 * M_PI;
-                        if (angular_angle < -M_PI)
-                            angular_angle += 2 * M_PI;
-                        vel_msg.twist.angular.z = angular_angle * 2.5;
-                        float distance = sqrt(pow(lidar_pose_data.x - pole_point.x, 2) +
-                                            pow(lidar_pose_data.y - pole_point.y, 2));
-                        float v_x = 0.2 * cos(lidar_pose_data.yaw + M_PI / 2),
-                            v_y = 0.2 * sin(lidar_pose_data.yaw + M_PI / 2),
-                            delta_dis = distance - 0.5;
-                        v_x += delta_dis * 2 * cos(angle_to_target);
-                        v_y += delta_dis * 2 * sin(angle_to_target);
-                        vel_msg.twist.linear.x = v_x;
-                        vel_msg.twist.linear.y = v_y;
-                        vel_msg.twist.linear.z = 1.25 - lidar_pose_data.z;
-                        velocity_pub.publish(vel_msg);
-                    }
-                }
-            case 6: // 返回蓝色物体继续巡线
-                {
-                    ROS_INFO("Mode 6");
-                    if (!blue_point.pos_check(lidar_pose_data))
-                    {
-                        blue_point.fly_to_target(local_pos_pub);
+                        debox_point.fly_to_target(local_pos_pub);
                     }
                     else{ mode = 1; }
                 }
+                
         }
 
         ros::spinOnce();
