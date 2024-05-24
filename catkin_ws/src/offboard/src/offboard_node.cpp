@@ -4,42 +4,13 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <ros_tools/LidarPose.h>
+#include <ros_tools/target_class.hpp>
 #include <mavros_msgs/CommandBool.h>
 #include <mavros_msgs/SetMode.h>
 #include <mavros_msgs/State.h>
 #include <ros/ros.h>
 #include <std_msgs/Int32.h>
 #include <vector>
-
-class target
-{
-  public:
-    float x, y, z, yaw;
-
-    target(float x, float y, float z, float yaw):x(x),y(y),z(z),yaw(yaw) {}
-
-    void fly_to_target(ros::Publisher &local_pos_pub)
-    {
-        geometry_msgs::PoseStamped pose;
-        pose.pose.position.x = x;
-        pose.pose.position.y = y;
-        pose.pose.position.z = z;
-        pose.pose.orientation.x = 0.0;
-        pose.pose.orientation.y = 0.0;
-        pose.pose.orientation.z = sin(yaw / 2);
-        pose.pose.orientation.w = cos(yaw / 2);
-
-        local_pos_pub.publish(pose);
-    }
-
-    bool pos_check(ros_tools::LidarPose &lidar_pose_data)
-    {
-        float distance = sqrt(pow(lidar_pose_data.x - x, 2) +
-                            pow(lidar_pose_data.y - y, 2) +
-                            pow(lidar_pose_data.z - z, 2));
-        return distance < 0.1;
-    }
-};
 
 int current_region = -1;
 
