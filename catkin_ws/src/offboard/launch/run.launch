@@ -12,6 +12,5 @@
     <node pkg="offboard" type="offboard_node" name="offboard_node" output="screen"/>
 
     <node pkg="cv_detect" type="barcode_node.py" name="barcode_node" output="screen"/>
-    <node pkg="cv_detect" type="blue_node.py" name="blue_node" output="screen"/>
-    <node pkg="cv_detect" type="supersonic_node.py" name="supersonic_node" output="screen"/>
+    <node pkg="cv_detect" type="box_node.py" name="box_node" output="screen"/>
 </launch>

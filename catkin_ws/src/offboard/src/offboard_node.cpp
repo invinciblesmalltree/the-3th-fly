@@ -1,9 +1,9 @@
 #include <cmath>
 #include <cv_detect/BarMsg.h>
-#include <cv_detect/LedMsg.h>
+#include <cv_detect/BoxMsg.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/TwistStamped.h>
-#include <lidar_data/LidarPose.h>
+#include <ros_tools/LidarPose.h>
 #include <mavros_msgs/CommandBool.h>
 #include <mavros_msgs/SetMode.h>
 #include <mavros_msgs/State.h>
@@ -32,7 +32,7 @@ class target
         local_pos_pub.publish(pose);
     }
 
-    bool pos_check(lidar_data::LidarPose &lidar_pose_data)
+    bool pos_check(ros_tools::LidarPose &lidar_pose_data)
     {
         float distance = sqrt(pow(lidar_pose_data.x - x, 2) +
                             pow(lidar_pose_data.y - y, 2) +
@@ -52,7 +52,7 @@ class region
 
         region(float center_x, float center_y, float length, float width):center_x(center_x),center_y(center_y),length(length),width(width) {}
 
-        void fly_to_scan(ros::Publisher &local_pos_pub, lidar_data::LidarPose &lidar_pose_data, geometry_msgs::TwistStamped vel_msg, int &mode, cv_detect::BarMsg barcode_data, ros::Rate &rate)
+        void fly_to_scan(ros::Publisher &local_pos_pub, ros_tools::LidarPose &lidar_pose_data, geometry_msgs::TwistStamped vel_msg, int &mode, cv_detect::BarMsg barcode_data, ros::Rate &rate)
         {
             switch(scan_mode)
             {
@@ -85,6 +85,16 @@ class region
                     {
                         vel_msg.twist.linear.z = -0.1;
                     }
+                    else if(lidar_pose_data.z < 0.1)
+                    {
+                        while(!scanPoint.pos_check(lidar_pose_data))
+                        {
+                            scanPoint.fly_to_target(local_pos_pub);
+                            ros::spinOnce();
+                            rate.sleep();
+                        }
+                        mode = 3; //找不到码返航
+                    }
                 case 3: // 前往投掷点
                     static target top(center_x, center_y, 1.8, 0);
                     if(!top.pos_check(lidar_pose_data))
@@ -105,7 +115,7 @@ class region
 
 };
 
-bool check_region(lidar_data::LidarPose &lidar_pose_data, std::vector<region> &regions)
+bool check_region(ros_tools::LidarPose &lidar_pose_data, std::vector<region> &regions)
 {
     float box_distance = 100; // 无穷远
     int box_num = -1;
@@ -132,8 +142,8 @@ float vector2theta(float x, float y) {
 }
 
 mavros_msgs::State current_state;
-lidar_data::LidarPose lidar_pose_data;
-cv_detect::LedMsg box_data; // TODO: cv消息修改为box_data
+ros_tools::LidarPose lidar_pose_data;
+cv_detect::BoxMsg box_data; // TODO: cv消息修改为box_data
 cv_detect::BarMsg barcode_data;
 std_msgs::Int32 supersonic_data;
 geometry_msgs::TwistStamped vel_msg;
@@ -142,8 +152,8 @@ std::vector<target> targets;
 std::vector<region> regions;
 
 void state_cb(const mavros_msgs::State::ConstPtr &msg) { current_state = *msg; }
-void lidar_cb(const lidar_data::LidarPose::ConstPtr &msg) { lidar_pose_data = *msg; }
-void led_cb(const cv_detect::LedMsg::ConstPtr &msg) { box_data = *msg; }
+void lidar_cb(const ros_tools::LidarPose::ConstPtr &msg) { lidar_pose_data = *msg; }
+void led_cb(const cv_detect::BoxMsg::ConstPtr &msg) { box_data = *msg; }
 void barcode_cb(const cv_detect::BarMsg::ConstPtr &msg) { barcode_data = *msg; }
 void supersonic_cb(const std_msgs::Int32::ConstPtr &msg) { supersonic_data = *msg; }
 
@@ -152,8 +162,8 @@ int main(int argc, char **argv) {
     ros::NodeHandle nh;
 
     ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>("mavros/state", 10, state_cb);
-    ros::Subscriber lidar_data_sub = nh.subscribe<lidar_data::LidarPose>("lidar_data", 10, lidar_cb);
-    ros::Subscriber led_sub = nh.subscribe<cv_detect::LedMsg>("box_msg", 10, led_cb);
+    ros::Subscriber lidar_data_sub = nh.subscribe<ros_tools::LidarPose>("lidar_data", 10, lidar_cb);
+    ros::Subscriber led_sub = nh.subscribe<cv_detect::BoxMsg>("box_msg", 10, led_cb);
     ros::Subscriber barcode_sub = nh.subscribe<cv_detect::BarMsg>("barcode_msg", 10, barcode_cb);
     ros::Subscriber supersonic_sub = nh.subscribe<std_msgs::Int32>("supersonic_data", 10, supersonic_cb);
     ros::Publisher local_pos_pub = nh.advertise<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 10);

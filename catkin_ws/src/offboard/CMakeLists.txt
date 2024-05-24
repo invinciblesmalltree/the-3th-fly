@@ -14,8 +14,8 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   nav_msgs
   tf2
-  lidar_data
   cv_detect
+  ros_tools
 )
 
 ## System dependencies are found with CMake's conventions
@@ -139,8 +139,6 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(offboard_node src/offboard_node.cpp)
-
-
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the

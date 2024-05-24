@@ -49,7 +49,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate messages in the 'msg' folder
 add_message_files(
    FILES
-   LedMsg.msg
+   BoxMsg.msg
    BarMsg.msg
 )
 
@@ -155,17 +155,12 @@ include_directories(
 #   ${catkin_LIBRARIES}
 # )
 catkin_install_python(PROGRAMS 
-  scripts/blue_node.py
+  scripts/box_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
 catkin_install_python(PROGRAMS 
   scripts/barcode_node.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-catkin_install_python(PROGRAMS 
-  scripts/supersonic_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

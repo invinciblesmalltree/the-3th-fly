@@ -51,9 +51,10 @@
   <buildtool_depend>catkin</buildtool_depend>
   <depend>geometry_msgs</depend>
   <depend>mavros</depend>
+  <depend>mavros_msgs</depend>
   <depend>roscpp</depend>
-  <depend>lidar_data</depend>
   <depend>cv_detect</depend>
+  <depend>ros_tools</depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
