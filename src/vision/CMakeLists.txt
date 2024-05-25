@@ -176,6 +176,8 @@ include_directories(
 # )
 catkin_install_python(
     PROGRAMS scripts/box_detect.py
+             scripts/barcode_scanner.py
+             scripts/led.py
     DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
