@@ -13,6 +13,7 @@
 #include <vector>
 
 int current_region = -1;
+int mode = 1;
 
 class region
 {
@@ -66,7 +67,7 @@ class region
                         }
                         mode = 3; //找不到码返航
                     }
-                case 3: // 前往投掷点
+                case 3: // 奇数前往投掷点
                     static target top(center_x, center_y, 1.8, 0);
                     if(!top.pos_check(lidar_pose_data))
                     {
@@ -76,7 +77,7 @@ class region
                     {
                         scan_mode = 5;
                     }
-                case 4: // 投掷并返航
+                case 4: // 投掷
                     /*
                     ** TODO: 投掷
                     */
@@ -94,7 +95,9 @@ bool check_region(ros_tools::LidarPose &lidar_pose_data, std::vector<region> &re
     {
         if(box_distance > sqrt(pow(lidar_pose_data.x - regions[i].center_x, 2) +
                                pow(lidar_pose_data.y - regions[i].center_y, 2)))
-        { box_num=i; current_region = i;}
+        { box_idstance = sqrt(pow(lidar_pose_data.x - regions[i].center_x, 2) +
+                               pow(lidar_pose_data.y - regions[i].center_y, 2));
+            box_num=i; current_region = i;}
     }
     if(regions[box_num].flag)
     {
@@ -114,7 +117,7 @@ float vector2theta(float x, float y) {
 
 mavros_msgs::State current_state;
 ros_tools::LidarPose lidar_pose_data;
-cv_detect::BoxMsg box_data; // TODO: cv消息修改为box_data
+cv_detect::BoxMsg box_data;
 cv_detect::BarMsg barcode_data;
 std_msgs::Int32 supersonic_data;
 geometry_msgs::TwistStamped vel_msg;
@@ -174,7 +177,6 @@ int main(int argc, char **argv) {
     ros::Time last_request = ros::Time::now();
 
     size_t target_index = 0;
-    int mode = 1;
     target debox_point(0, 0, 0, 0);
 
     // 起飞前检查
@@ -234,7 +236,7 @@ int main(int argc, char **argv) {
                         break;
                     }
                 }
-            case 2: // 找码扫码投掷
+            case 2: // 任务动作
                 {
                     ROS_INFO("Mode 2");
                     ROS_INFO("Box detected!");
@@ -244,7 +246,7 @@ int main(int argc, char **argv) {
 
                     regions[current_region].fly_to_scan(local_pos_pub, lidar_pose_data, vel_msg, mode, barcode_data, rate);
                 }
-            case 3: // 返回路线继续巡防
+            case 3: // 返回巡防
                 {
                     ROS_INFO("Mode 3");
                     if (!debox_point.pos_check(lidar_pose_data))
