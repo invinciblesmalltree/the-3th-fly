@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
     std_msgs
     cv_bridge
     message_generation
+    ros_tools
 )
 
 ## System dependencies are found with CMake's conventions
@@ -145,6 +146,7 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/vision_node.cpp)
+add_executable(region src/region.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -160,6 +162,9 @@ include_directories(
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
+target_link_libraries(region
+    ${catkin_LIBRARIES}
+)
 
 #############
 ## Install ##
