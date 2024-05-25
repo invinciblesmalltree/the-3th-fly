@@ -8,7 +8,7 @@ import time
 from cv_detect.msg import BoxMsg
 from sensor_msgs.msg import Image
 
-def detect_blue_objects(image, width, height):
+def detect_box(image, width, height):
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
     lower_brown = np.array([20, 30, 50])  # 较深的棕色
@@ -62,7 +62,7 @@ while(1):
     if frame is not None:
         height, width = frame.shape[:2]
         box_msg = BoxMsg()
-        delta = detect_blue_objects(frame, width, height)
+        delta = detect_box(frame, width, height)
 
         cv2.imshow('frame', frame)
         cv2.waitKey(1)
