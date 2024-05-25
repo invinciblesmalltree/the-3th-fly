@@ -21,6 +21,9 @@ class region
         float center_x, center_y, length, width;
         bool flag = false; // 是否已经过
         int scan_mode=1;
+        target scanPoint(center_x+0.8, center_y, 1.8, 0); // 扫码起始点
+        target scanPoint1(center_x+0.8, center_y, 0.7, 0); // 大箱子扫码点
+        target scanPoint2(center_x+0.8, center_y, 0.45, 0); // 小箱子扫码点
 
         region(float center_x, float center_y, float length, float width):center_x(center_x),center_y(center_y),length(length),width(width) {}
 
@@ -29,16 +32,15 @@ class region
             switch(scan_mode)
             {
                 case 1: // 飞到scan点
-                    static target scanPoint(center_x+0.5, center_y, 1.8, 0); // 起飞朝南，d435扫码朝北
-                    if(!scanPoint.pos_check(lidar_pose_data))
+                    while(!scanPoint.pos_check(lidar_pose_data))
                     {
                         scanPoint.fly_to_target(local_pos_pub);
+                        ros::spinOnce();
+                        rate.sleep();
                     }
-                    else
-                    {
-                        scan_mode = 2;
-                    }
-                case 2: // 向下扫码, 判断奇偶并返回scan点
+                    scan_mode = 2;
+                    last_request = ros::Time::now();
+                case 2: // 定点扫码, 判断奇偶并返回scan点
                     if(barcode_data.n != -1 && barcode_data.n%2 == 1)
                     {
                         scan_mode = 3; //奇数投掷
@@ -53,20 +55,18 @@ class region
                         }
                         mode = 3; //偶数返航
                     }
-                    else if(lidar_pose_data.z > 0.1)
+
+                    if(ros::Time::now()-last_request < 8)
                     {
-                        vel_msg.twist.linear.z = -0.1;
+                        scanPoint1.fly_to_target(local_pos_pub);
                     }
-                    else if(lidar_pose_data.z < 0.1)
+                    else if (ros::Time::now()-last_request >= 8 && ros::Time::now()-last_request < 16)
                     {
-                        while(!scanPoint.pos_check(lidar_pose_data))
-                        {
-                            scanPoint.fly_to_target(local_pos_pub);
-                            ros::spinOnce();
-                            rate.sleep();
-                        }
-                        mode = 3; //找不到码返航
+                        scanPoint2.fly_to_target(local_pos_pub);
                     }
+                    else
+                    { mode = 1; }
+
                 case 3: // 奇数前往投掷点
                     static target top(center_x, center_y, 1.8, 0);
                     if(!top.pos_check(lidar_pose_data))
