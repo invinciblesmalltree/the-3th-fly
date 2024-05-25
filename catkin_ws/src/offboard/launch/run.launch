@@ -1,16 +1,15 @@
 <launch>
     <node pkg="mavros" type="px4_ACM0.launch" name="mavros_node" output="screen"/>
-
     <node pkg="livox_ros_driver2" type="msg_MID360.launch" name="livox_node" output="screen"/>
-
     <node pkg="fast_lio" type="mapping_mid360.launch" name="fast_lio_node" output="screen"/>
 
-    <node pkg="lidar_to_mavros" type="lidar_to_mavros" name="lidar_to_mavros_node" output="screen"/>
+    <node pkg="ros_tools" type="lidar_to_mavros" name="lidar_to_mavros_node" output="screen"/>
+    <node pkg="ros_tools" type="lidar_data_node" name="lidar_data_node" output="screen"/>
+    <node pkg="ros_tools" type="d435_node" name="d435_node" output="screen"/>
+    <node pkg="ros_tools" type="ground_camera_node" name="ground_camera_node" output="screen"/>
 
-    <node pkg="lidar_data" type="lidar_data_node" name="lidar_data_node" output="screen"/>
+    <node pkg="cv_detect" type="barcode_node" name="barcode_node" output="screen"/>
+    <node pkg="cv_detect" type="box_node" name="box_node" output="screen"/>
 
     <node pkg="offboard" type="offboard_node" name="offboard_node" output="screen"/>
-
-    <node pkg="cv_detect" type="barcode_node.py" name="barcode_node" output="screen"/>
-    <node pkg="cv_detect" type="box_node.py" name="box_node" output="screen"/>
 </launch>
