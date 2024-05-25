@@ -95,7 +95,7 @@ bool check_region(ros_tools::LidarPose &lidar_pose_data, std::vector<region> &re
     {
         if(box_distance > sqrt(pow(lidar_pose_data.x - regions[i].center_x, 2) +
                                pow(lidar_pose_data.y - regions[i].center_y, 2)))
-        { box_idstance = sqrt(pow(lidar_pose_data.x - regions[i].center_x, 2) +
+        { box_distance = sqrt(pow(lidar_pose_data.x - regions[i].center_x, 2) +
                                pow(lidar_pose_data.y - regions[i].center_y, 2));
             box_num=i; current_region = i;}
     }
@@ -119,7 +119,6 @@ mavros_msgs::State current_state;
 ros_tools::LidarPose lidar_pose_data;
 cv_detect::BoxMsg box_data;
 cv_detect::BarMsg barcode_data;
-std_msgs::Int32 supersonic_data;
 geometry_msgs::TwistStamped vel_msg;
 
 std::vector<target> targets;
@@ -129,7 +128,6 @@ void state_cb(const mavros_msgs::State::ConstPtr &msg) { current_state = *msg; }
 void lidar_cb(const ros_tools::LidarPose::ConstPtr &msg) { lidar_pose_data = *msg; }
 void led_cb(const cv_detect::BoxMsg::ConstPtr &msg) { box_data = *msg; }
 void barcode_cb(const cv_detect::BarMsg::ConstPtr &msg) { barcode_data = *msg; }
-void supersonic_cb(const std_msgs::Int32::ConstPtr &msg) { supersonic_data = *msg; }
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "offb_node");
@@ -137,9 +135,8 @@ int main(int argc, char **argv) {
 
     ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>("mavros/state", 10, state_cb);
     ros::Subscriber lidar_data_sub = nh.subscribe<ros_tools::LidarPose>("lidar_data", 10, lidar_cb);
-    ros::Subscriber led_sub = nh.subscribe<cv_detect::BoxMsg>("box_msg", 10, led_cb);
+    ros::Subscriber box_sub = nh.subscribe<cv_detect::BoxMsg>("box_msg", 10, led_cb);
     ros::Subscriber barcode_sub = nh.subscribe<cv_detect::BarMsg>("barcode_msg", 10, barcode_cb);
-    ros::Subscriber supersonic_sub = nh.subscribe<std_msgs::Int32>("supersonic_data", 10, supersonic_cb);
     ros::Publisher local_pos_pub = nh.advertise<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 10);
     ros::Publisher velocity_pub = nh.advertise<geometry_msgs::TwistStamped>("mavros/setpoint_velocity/cmd_vel", 10);
     ros::ServiceClient arming_client = nh.serviceClient<mavros_msgs::CommandBool>("mavros/cmd/arming");
@@ -178,6 +175,11 @@ int main(int argc, char **argv) {
 
     size_t target_index = 0;
     target debox_point(0, 0, 0, 0);
+
+    for(int i=0;i<10;i++)
+    {
+        targets[0].fly_to_target(local_pos_pub);
+    }
 
     // 起飞前检查
     while (!current_state.armed || current_state.mode != "OFFBOARD")
