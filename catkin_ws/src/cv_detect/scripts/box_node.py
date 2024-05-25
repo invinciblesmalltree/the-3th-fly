@@ -60,6 +60,7 @@ rate = rospy.Rate(20)
 # cv识别程序主体
 while(1):
     if frame is not None:
+        frame = cv2.copyMakeBorder(frame, 10, 10, 10, 10, cv2.BORDER_CONSTANT, value=[255,255,255])
         height, width = frame.shape[:2]
         box_msg = BoxMsg()
         delta = detect_box(frame, width, height)
