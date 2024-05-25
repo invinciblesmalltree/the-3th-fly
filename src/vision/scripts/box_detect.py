@@ -9,12 +9,14 @@ from cv_bridge import CvBridge, CvBridgeError
 import os
 
 yolov5_path = str(os.getenv("YOLOV5_PATH"))
+class_name = ["box_1", "box_2"]
+except_conf = 0.3
 
 model = torch.hub.load(
     yolov5_path,
     "custom",
     path=f"{yolov5_path}/runs/train/box_model/weights/best.pt",
-    source="local"
+    source="local",
 )
 bridge = CvBridge()
 
@@ -37,6 +39,8 @@ def image_callback(data):
 
     for det in detections:
         x1, y1, x2, y2, conf, cls = det
+        if conf < except_conf:
+            continue
         box_center_x = (x1 + x2) / 2
         box_center_y = (y1 + y2) / 2
         distance = (
@@ -65,10 +69,12 @@ def image_callback(data):
 
     for det in detections:
         x1, y1, x2, y2, conf, cls = det
+        if conf < except_conf:
+            continue
         cv2.rectangle(cv_image, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
         cv2.putText(
             cv_image,
-            f"{int(cls)}",
+            f"{class_name[int(cls)]} {conf:.2f}",
             (int(x1), int(y1) - 10),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.9,
