@@ -29,7 +29,8 @@ def replace_brown_with_white(image):
 
 
 def binarize_image(image, threshold_value=127):
-    _, binary_image = cv.threshold(image, threshold_value, 255, cv.THRESH_BINARY)
+    gray_image = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
+    _, binary_image = cv.threshold(gray_image, threshold_value, 255, cv.THRESH_BINARY)
     return binary_image
 
 
@@ -43,6 +44,8 @@ def callback(data):
     frame = replace_brown_with_white(frame)
     frame = binarize_image(frame)
     barcodes = decode(frame)
+    cv.imshow("Barcode", frame)
+    cv.waitKey(1)
     if barcodes:
         barcode_data = barcodes[0].data.decode("utf-8")
         if not barcode_data.isdigit():

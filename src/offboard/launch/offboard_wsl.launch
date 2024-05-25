@@ -1,6 +1,7 @@
 <launch>
     <node pkg="ros_tools" type="pose_data_node" name="pose_data_node" />
     <node pkg="vision" type="box_detect.py" name="box_detect" />
+    <node pkg="vision" type="barcode_scanner.py" name="barcode_scanner" />
     <param name="delay" type="int" value="5"/>
     <node pkg="offboard" type="offboard_node" name="offboard_node" output="screen" />
 </launch>
