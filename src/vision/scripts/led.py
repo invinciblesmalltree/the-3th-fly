@@ -7,13 +7,12 @@ from std_msgs.msg import Int32
 
 
 def callback(msg):
-    if msg >= 1 and msg <= 9:
-        pin = pins.get(msg)
-        for _ in range(3):
-            GPIO.output(pin, GPIO.HIGH)
-            time.sleep(0.5)
-            GPIO.output(pin, GPIO.LOW)
-            time.sleep(0.5)
+    pin = pins.get(msg)
+    for _ in range(3):
+        GPIO.output(pin, GPIO.HIGH)
+        time.sleep(0.5)
+        GPIO.output(pin, GPIO.LOW)
+        time.sleep(0.5)
 
 
 rospy.init_node("led", anonymous=True)
