@@ -14,21 +14,25 @@
 
 int current_region = -1;
 int mode = 1;
+ros::Time last_request;
 
 class region
 {
     public:
         float center_x, center_y, length, width;
         bool flag = false; // 是否已经过
-        int scan_mode=1;
-        target scanPoint(center_x+0.8, center_y, 1.8, 0); // 扫码起始点
-        target scanPoint1(center_x+0.8, center_y, 0.7, 0); // 大箱子扫码点
-        target scanPoint2(center_x+0.8, center_y, 0.45, 0); // 小箱子扫码点
 
         region(float center_x, float center_y, float length, float width):center_x(center_x),center_y(center_y),length(length),width(width) {}
+};
 
-        void fly_to_scan(ros::Publisher &local_pos_pub, ros_tools::LidarPose &lidar_pose_data, geometry_msgs::TwistStamped vel_msg, int &mode, cv_detect::BarMsg barcode_data, ros::Rate &rate)
+void fly_to_scan(ros::Publisher &local_pos_pub, ros_tools::LidarPose &lidar_pose_data, int &mode, cv_detect::BarMsg barcode_data, ros::Rate &rate)
         {
+            int scan_mode=1;
+            target scanPoint(lidar_pose_data.x+0.8, lidar_pose_data.y, 1.8, 0); // 扫码起始点
+            target scanPoint1(lidar_pose_data.x+0.8, lidar_pose_data.y, 0.7, 0); // 大箱子扫码点
+            target scanPoint2(lidar_pose_data.x+0.8, lidar_pose_data.y, 0.45, 0); // 小箱子扫码点
+            target top(lidar_pose_data.x, lidar_pose_data.y, 1.8, 0);
+
             switch(scan_mode)
             {
                 case 1: // 飞到scan点
@@ -45,7 +49,7 @@ class region
                     {
                         scan_mode = 3; //奇数投掷
                     }
-                    else if(barcode_data.n != -1 && barcode_data.n%2 == 0)
+                    else if(barcode_data.n%2 == 0)
                     {
                         while(!scanPoint.pos_check(lidar_pose_data))
                         {
@@ -56,11 +60,11 @@ class region
                         mode = 3; //偶数返航
                     }
 
-                    if(ros::Time::now()-last_request < 8)
+                    if(ros::Time::now()-last_request < ros::Duration(8))
                     {
                         scanPoint1.fly_to_target(local_pos_pub);
                     }
-                    else if (ros::Time::now()-last_request >= 8 && ros::Time::now()-last_request < 16)
+                    else if (ros::Time::now()-last_request >= ros::Duration(8) && ros::Time::now()-last_request < ros::Duration(16))
                     {
                         scanPoint2.fly_to_target(local_pos_pub);
                     }
@@ -68,15 +72,19 @@ class region
                     { mode = 1; }
 
                 case 3: // 奇数前往投掷点
-                    static target top(center_x, center_y, 1.8, 0);
-                    if(!top.pos_check(lidar_pose_data))
+                    while(!scanPoint.pos_check(lidar_pose_data))
+                    {
+                        scanPoint.fly_to_target(local_pos_pub);
+                        ros::spinOnce();
+                        rate.sleep();
+                    }
+                    while(!top.pos_check(lidar_pose_data))
                     {
                         top.fly_to_target(local_pos_pub);
+                        ros::spinOnce();
+                        rate.sleep();
                     }
-                    else
-                    {
-                        scan_mode = 5;
-                    }
+                    scan_mode = 4;
                 case 4: // 投掷
                     /*
                     ** TODO: 投掷
@@ -85,7 +93,6 @@ class region
             }
         }
 
-};
 
 bool check_region(ros_tools::LidarPose &lidar_pose_data, std::vector<region> &regions)
 {
@@ -238,15 +245,24 @@ int main(int argc, char **argv) {
                         break;
                     }
                 }
-            case 2: // 任务动作
+            case 2: // 对准箱子，任务动作
                 {
                     ROS_INFO("Mode 2");
                     ROS_INFO("Box detected!");
-                    ROS_INFO("Box: (%f, %f)", 
-                            regions[current_region].center_x, regions[current_region].center_y);
+
                     target debox_point(lidar_pose_data.x, lidar_pose_data.y, lidar_pose_data.z, 0);
 
-                    regions[current_region].fly_to_scan(local_pos_pub, lidar_pose_data, vel_msg, mode, barcode_data, rate);
+                    if(sqrt(pow(box_data.delta_x, 2) + pow(box_data.delta_y, 2)) < 100)
+                    {
+                        ROS_INFO("Box: (%f, %f)", lidar_pose_data.x, lidar_pose_data.y);
+                        fly_to_scan(local_pos_pub, lidar_pose_data, mode, barcode_data, rate);
+                    }
+                    else
+                    {
+                        vel_msg.twist.linear.x = box_data.delta_x/1000; // x轴校准速度千分之一像素
+                        vel_msg.twist.linear.y = box_data.delta_y/1000; // x轴校准速度千分之一像素
+                        velocity_pub.publish(vel_msg);
+                    }
                 }
             case 3: // 返回巡防
                 {
