@@ -7,6 +7,7 @@ from pyzbar.pyzbar import decode
 from PIL import Image
 import Jetson.GPIO as GPIO
 import time
+from cv_bridge import CvBridge
 from cv_detect.msg import BarMsg
 
 def decode_barcode(image):
@@ -16,9 +17,10 @@ def decode_barcode(image):
     barcode_data = barcodes[0].data.decode('utf-8')
     return int(barcode_data)
 
-global frame
+bridge = CvBridge()
+frame = None
 def callback(frame):
-    frame = Image
+    frame = np.array(bridge.imgmsg_to_cv2(frame, "bgr8"))
 
 # 初始化节点
 rospy.init_node('barcode_node', anonymous=True)

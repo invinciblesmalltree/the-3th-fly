@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 import Jetson.GPIO as GPIO
 import time
+from cv_bridge import CvBridge
 from cv_detect.msg import BoxMsg
 from sensor_msgs.msg import Image
 
@@ -46,9 +47,10 @@ def normal_blink(times):
         GPIO.output(LED_PIN, GPIO.LOW)
         time.sleep(0.5)
 
-global frame
+bridge = CvBridge()
+frame = None
 def callback(frame):
-    frame = Image
+    frame = np.array(bridge.imgmsg_to_cv2(frame, "bgr8"))
 
 # 初始化节点
 rospy.init_node('box_node', anonymous=True)
