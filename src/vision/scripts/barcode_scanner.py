@@ -44,8 +44,8 @@ def callback(data):
     frame = replace_brown_with_white(frame)
     frame = binarize_image(frame)
     barcodes = decode(frame)
-    cv.imshow("Barcode", frame)
-    cv.waitKey(1)
+    # cv.imshow("Barcode", frame)
+    # cv.waitKey(1)
     if barcodes:
         barcode_data = barcodes[0].data.decode("utf-8")
         if not barcode_data.isdigit():

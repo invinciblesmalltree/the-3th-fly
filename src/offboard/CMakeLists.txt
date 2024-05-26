@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
     mavros_msgs
     geometry_msgs
     ros_tools
+    vision
 )
 
 ## System dependencies are found with CMake's conventions

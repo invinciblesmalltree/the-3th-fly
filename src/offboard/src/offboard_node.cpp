@@ -1,5 +1,6 @@
 #include <cmath>
 #include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/TwistStamped.h>
 #include <mavros_msgs/CommandBool.h>
 #include <mavros_msgs/CommandLong.h>
 #include <mavros_msgs/SetMode.h>
@@ -7,7 +8,9 @@
 #include <ros/ros.h>
 #include <ros_tools/LidarPose.h>
 #include <ros_tools/target_class.hpp>
+#include <std_msgs/Int32.h>
 #include <vector>
+#include <vision/box_data.h>
 
 float vector2theta(float x, float y) {
     float angle = atan2(y, x);
@@ -16,6 +19,8 @@ float vector2theta(float x, float y) {
 
 mavros_msgs::State current_state;
 ros_tools::LidarPose lidar_pose_data;
+int region_data;
+vision::box_data box_data;
 
 void state_cb(const mavros_msgs::State::ConstPtr &msg) { current_state = *msg; }
 
@@ -23,22 +28,34 @@ void lidar_cb(const ros_tools::LidarPose::ConstPtr &msg) {
     lidar_pose_data = *msg;
 }
 
+void region_cb(const std_msgs::Int32::ConstPtr &msg) {
+    region_data = msg->data;
+}
+
+void box_cb(const vision::box_data::ConstPtr &msg) { box_data = *msg; }
+
 int main(int argc, char **argv) {
     ros::init(argc, argv, "offb_node");
     ros::NodeHandle nh;
 
     ros::Subscriber state_sub =
-        nh.subscribe<mavros_msgs::State>("mavros/state", 10, state_cb);
+        nh.subscribe<mavros_msgs::State>("/mavros/state", 10, state_cb);
     ros::Subscriber lidar_data_sub =
-        nh.subscribe<ros_tools::LidarPose>("lidar_data", 10, lidar_cb);
+        nh.subscribe<ros_tools::LidarPose>("/lidar_data", 10, lidar_cb);
+    ros::Subscriber region_data_sub =
+        nh.subscribe<std_msgs::Int32>("/region_data", 10, region_cb);
+    ros::Subscriber box_data_sub =
+        nh.subscribe<vision::box_data>("/yolov5/box_detect", 10, box_cb);
     ros::Publisher local_pos_pub = nh.advertise<geometry_msgs::PoseStamped>(
-        "mavros/setpoint_position/local", 10);
+        "/mavros/setpoint_position/local", 10);
+    ros::Publisher velocity_pub = nh.advertise<geometry_msgs::TwistStamped>(
+        "/mavros/setpoint_velocity/cmd_vel", 10);
     ros::ServiceClient arming_client =
-        nh.serviceClient<mavros_msgs::CommandBool>("mavros/cmd/arming");
+        nh.serviceClient<mavros_msgs::CommandBool>("/mavros/cmd/arming");
     ros::ServiceClient command_client =
         nh.serviceClient<mavros_msgs::CommandLong>("/mavros/cmd/command");
     ros::ServiceClient set_mode_client =
-        nh.serviceClient<mavros_msgs::SetMode>("mavros/set_mode");
+        nh.serviceClient<mavros_msgs::SetMode>("/mavros/set_mode");
     ros::Rate rate(20.0);
 
     std::vector<target> targets = {
@@ -49,6 +66,23 @@ int main(int argc, char **argv) {
         target(1.5, 0, 1.8, 0),    target(1.5, 2.7, 1.8, 0),
         target(0.65, 2.7, 1.8, 0), target(0.65, 0, 1.8, 0),
         target(0, 0, 1.8, 0),      target(0, 0, 0.5, 0)};
+    // std::vector<target> targets = {
+    //     target(4.3, -0.2, 1.8, 0),     target(4.3, -0.2, 1.8, 0),
+    //     target(4.3, 1.2, 1.8, 0), target(4.3, -0.2, 1.8, 0),
+    //     target(4.1, -0.2, 1.8, 0), target(4.1, 1.2, 1.8, 0),
+    //     target(3.9, 1.2, 1.8, 0), target(3.9, -0.2, 1.8, 0),
+    //     target(3.7, -0.2, 1.8, 0), target(3.7, 1.2, 1.8, 0),
+    //     target(3.5, 1.2, 1.8, 0), target(3.5, -0.2, 1.8, 0),
+    //     target(3.3, -0.2, 1.8, 0), target(3.3, 1.2, 1.8, 0),
+    //     target(3.1, 1.2, 1.8, 0), target(3.1, -0.2, 1.8, 0),
+    //     target(2.9, -0.2, 1.8, 0), target(2.9, 1.2, 1.8, 0),
+    //     target(2.7, 2.2, 1.8, 0), target(2.7, -0.2, 1.8, 0),
+    //     target(2.5, -0.2, 1.8, 0), target(2.5, 2.2, 1.8, 0),
+    //     target(2.3, 2.2, 1.8, 0), target(2.3, -0.2, 1.8, 0),
+    //     target(2.1, -0.2, 1.8, 0), target(2.1, 2.2, 1.8, 0),
+    //     target(1.9, 2.2, 1.8, 0), target(1.9, -0.2, 1.8, 0),
+    //     target(1.7, -0.2, 1.8, 0), target(1.7, 2.2, 1.8, 0),
+    //     target(1.5, 2.2, 1.8, 0), target(1.5, -0.2, 1.8, 0)};
 
     while (ros::ok() && !current_state.connected) {
         ros::spinOnce();
@@ -65,7 +99,9 @@ int main(int argc, char **argv) {
 
     size_t target_index = 0;
     int mode = 0;
-    int n = 0;
+    bool region_vis[7]{};
+    geometry_msgs::TwistStamped box_forward_vel;
+    target box_center(0, 0, 1.8, 0);
 
     while (ros::ok()) {
         if (!current_state.armed &&
@@ -95,7 +131,7 @@ int main(int argc, char **argv) {
     }
 
     while (ros::ok()) {
-        if (mode == 0) {
+        if (mode == 0) { // 正常巡线
             if (target_index >= targets.size()) {
                 ROS_INFO("All targets reached");
                 mavros_msgs::CommandLong command_srv;
@@ -110,9 +146,36 @@ int main(int argc, char **argv) {
                 break;
             } else if (!targets[target_index].pos_check(lidar_pose_data)) {
                 targets[target_index].fly_to_target(local_pos_pub);
+                if (region_data && !region_vis[region_data] &&
+                    ~box_data.class_id) {
+                    ROS_INFO("Box %d detected", box_data.class_id);
+                    region_vis[region_data] = true;
+                    mode = 1;
+                    ROS_INFO("Mode 1");
+                }
             } else {
                 ROS_INFO("Reached target %zu", target_index);
                 target_index++;
+            }
+        } else if (mode == 1) { // 飞往箱子中心
+            box_forward_vel.twist.linear.z = 1.8 - lidar_pose_data.z;
+            if (~box_data.class_id) {
+                box_forward_vel.twist.linear.x = -box_data.y / 1000.0;
+                box_forward_vel.twist.linear.y = -box_data.x / 1000.0;
+                if (box_data.x * box_data.x + box_data.y * box_data.y < 100) {
+                    mode = 0;
+                    ROS_INFO("Mode 0");
+                }
+            }
+            velocity_pub.publish(box_forward_vel);
+        } else if (mode == 2) {
+            if (!targets[target_index].pos_check(lidar_pose_data)) {
+                targets[target_index].fly_to_target(local_pos_pub);
+            } else {
+                ROS_INFO("Reached target %zu", target_index);
+                target_index++;
+                mode = 0;
+                ROS_INFO("Mode 0");
             }
         }
 
