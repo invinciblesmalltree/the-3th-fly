@@ -49,8 +49,8 @@ def normal_blink(times):
 
 bridge = CvBridge()
 frame = None
-def callback(frame):
-    frame = np.array(bridge.imgmsg_to_cv2(frame, "bgr8"))
+def callback(data):
+    frame = np.array(bridge.imgmsg_to_cv2(data, "bgr8"))
 
 def main():
     rospy.init_node('barcode_node')
