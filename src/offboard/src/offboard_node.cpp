@@ -28,10 +28,10 @@ class region
 void fly_to_scan(ros::Publisher &local_pos_pub, ros_tools::LidarPose &lidar_pose_data, int &mode, cv_detect::BarMsg barcode_data, ros::Rate &rate)
         {
             int scan_mode=1;
-            target scanPoint(lidar_pose_data.x+0.8, lidar_pose_data.y, 1.8, 0); // 扫码起始点
-            target scanPoint1(lidar_pose_data.x+0.8, lidar_pose_data.y, 0.7, 0); // 大箱子扫码点
-            target scanPoint2(lidar_pose_data.x+0.8, lidar_pose_data.y, 0.45, 0); // 小箱子扫码点
-            target top(lidar_pose_data.x, lidar_pose_data.y, 1.8, 0);
+            target scanPoint(lidar_pose_data.x+0.8, lidar_pose_data.y, 1.8, M_PI); // 扫码起始点
+            target scanPoint1(lidar_pose_data.x+0.8, lidar_pose_data.y, 0.7, M_PI); // 大箱子扫码点
+            target scanPoint2(lidar_pose_data.x+0.8, lidar_pose_data.y, 0.45, M_PI); // 小箱子扫码点
+            target top(lidar_pose_data.x, lidar_pose_data.y, 1.8, M_PI);
 
             switch(scan_mode)
             {
