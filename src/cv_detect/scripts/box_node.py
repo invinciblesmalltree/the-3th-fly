@@ -22,7 +22,7 @@ def detect_box(image, width, height):
         area = cv2.contourArea(contour)
         approx = cv2.approxPolyDP(contour, 0.04 * cv2.arcLength(contour, True), True)
 
-        if len(approx) == 4 and area > 10000:
+        if len(approx) == 4 and area > 5000:
             M = cv2.moments(contour)
             delta_x = int(M['m10'] / M['m00']-width/2)
             delta_y = -int(M['m01'] / M['m00']-height/2)
@@ -33,23 +33,18 @@ def detect_box(image, width, height):
 
     return None
 
-global frame
-frame = None
-def callback(data, bridge=CvBridge()):
-    global frame
-    if data is not None:
-        frame = bridge.imgmsg_to_cv2(data, "bgr8")
-
 def main():
     rospy.init_node('box_node', anonymous=True)
-
-    camera_sub = rospy.Subscriber('/camera/ground', Image, callback)
     pub = rospy.Publisher('box_msg', BoxMsg, queue_size=10)
     rate = rospy.Rate(20)
 
-    while(1):
+    capture = cv2.VideoCapture("/dev/ground")
+    capture.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+
+    while not rospy.is_shutdown():
+        ret, frame = capture.read()
         if frame is not None:
-            frame = cv2.copyMakeBorder(frame, 10, 10, 10, 10, cv2.BORDER_CONSTANT, value=[255,255,255])
             height, width = frame.shape[:2]
             box_msg = BoxMsg()
             delta = detect_box(frame, width, height)
@@ -63,11 +58,6 @@ def main():
             pub.publish(box_msg)
 
         rate.sleep()
-
-def callback(data):
-    global frame
-    if data is not None:
-        frame = bridge.imgmsg_to_cv2(data, "bgr8")
 
 if __name__ == '__main__':
     main()
