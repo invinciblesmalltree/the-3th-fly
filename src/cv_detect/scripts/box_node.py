@@ -3,7 +3,6 @@
 import rospy
 import cv2
 import numpy as np
-import Jetson.GPIO as GPIO
 import time
 from cv_bridge import CvBridge
 from cv_detect.msg import BoxMsg
@@ -34,18 +33,6 @@ def detect_box(image, width, height):
             return delta_x, delta_y
 
     return None
-
-def normal_blink(times):
-    GPIO.setmode(GPIO.BOARD)  
-
-    LED_PIN = 11
-    GPIO.setup(LED_PIN, GPIO.OUT)
-
-    for _ in range(times):
-        GPIO.output(LED_PIN, GPIO.HIGH)
-        time.sleep(0.5)
-        GPIO.output(LED_PIN, GPIO.LOW)
-        time.sleep(0.5)
 
 global frame
 frame = None
