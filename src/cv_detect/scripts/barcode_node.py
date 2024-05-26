@@ -4,10 +4,10 @@ import rospy
 import cv2
 import numpy as np
 from pyzbar.pyzbar import decode
-from PIL import Image
 import time
 from cv_bridge import CvBridge
 from cv_detect.msg import BarMsg
+from sensor_msgs.msg import Image
 
 def decode_barcode(image):
     barcodes = decode(image)
@@ -22,7 +22,7 @@ def callback(data, bridge=CvBridge()):
     global frame
     if data is not None:
         frame = bridge.imgmsg_to_cv2(data, "bgr8")
-        
+
 def main():
     # 初始化节点
     rospy.init_node('barcode_node', anonymous=True)
