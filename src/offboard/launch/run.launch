@@ -5,8 +5,6 @@
 
   <node pkg="ros_tools" type="lidar_to_mavros" name="lidar_to_mavros" />
   <node pkg="ros_tools" type="lidar_data_node" name="lidar_data_node" />
-  <node pkg="ros_tools" type="ground_camera_node.py" name="ground_camera_node" />
-  <node pkg="ros_tools" type="d435_node.py" name="d435_node" />
 
   <node pkg="cv_detect" type="box_node.py" name="box_node" />
   <node pkg="cv_detect" type="barcode_node.py" name="barcode_node" />
