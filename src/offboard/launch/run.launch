@@ -1,8 +1,8 @@
 <launch>
-  <include file="$(find mavros)/launch/px4_ACM0.launch" launch-prefix="bash -c 'sleep 10; $0 $@'" />
-  <include file="$(find livox_ros_driver2)/launch_ROS1/msg_MID360.launch" launch-prefix="bash -c 'sleep 10; $0 $@'" />  
+  <include file="$(find mavros)/launch/px4_ACM0.launch" launch-prefix="bash -c 'sleep 5; $0 $@'" />
+  <include file="$(find livox_ros_driver2)/launch_ROS1/msg_MID360.launch" launch-prefix="bash -c 'sleep 5; $0 $@'" />  
   <include file="$(find fast_lio)/launch/mapping_mid360.launch" launch-prefix="bash -c 'sleep 5; $0 $@'" />
-  
+
   <node pkg="ros_tools" type="lidar_to_mavros" name="lidar_to_mavros" />
   <node pkg="ros_tools" type="lidar_data_node" name="lidar_data_node" />
   <node pkg="ros_tools" type="ground_camera_node.py" name="ground_camera_node" />

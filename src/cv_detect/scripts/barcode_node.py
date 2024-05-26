@@ -22,31 +22,39 @@ frame = None
 def callback(frame):
     frame = np.array(bridge.imgmsg_to_cv2(frame, "bgr8"))
 
-# 初始化节点
-rospy.init_node('barcode_node', anonymous=True)
-rgb_sub = rospy.Subscriber('/d435/rgb', Image, callback)
-pub = rospy.Publisher('barcode_msg', BarMsg, queue_size=10)
-rate = rospy.Rate(20)
+def main():
+    rospy.init_node('barcode_node')
+    rospy.loginfo("barcode_node has started.")
 
-# cv识别程序主体
-led_open = False # led连闪开关
+    # 初始化节点
+    rospy.init_node('barcode_node', anonymous=True)
+    rgb_sub = rospy.Subscriber('/d435/rgb', Image, callback)
+    pub = rospy.Publisher('barcode_msg', BarMsg, queue_size=10)
+    rate = rospy.Rate(20)
 
-while(1):
-    if frame is not None:
-        height, width = frame.shape[:2]
+    # cv识别程序主体
+    led_open = False # led连闪开关
 
-        bar_msg = BarMsg()
-        ret = decode_barcode(frame)
-        if ret is None:
-            bar_msg.n = -1
-        else:
-            if ret < 1 or ret > 9:
-                rate.sleep()
-                continue
-            led_open = True
-            bar_msg.n= ret
-            rospy.loginfo('Barcode: %s', bar_msg.n)
+    while(1):
+        if frame is not None:
+            height, width = frame.shape[:2]
 
-        pub.publish(bar_msg)
+            bar_msg = BarMsg()
+            ret = decode_barcode(frame)
+            if ret is None:
+                bar_msg.n = -1
+            else:
+                if ret < 1 or ret > 9:
+                    rate.sleep()
+                    continue
+                led_open = True
+                bar_msg.n= ret
+                rospy.loginfo('Barcode: %s', bar_msg.n)
 
-    rate.sleep()
+            pub.publish(bar_msg)
+
+        rospy.spin()
+        rate.sleep()
+
+if __name__ == '__main__':
+    main()

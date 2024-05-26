@@ -52,27 +52,35 @@ frame = None
 def callback(frame):
     frame = np.array(bridge.imgmsg_to_cv2(frame, "bgr8"))
 
-# 初始化节点
-rospy.init_node('box_node', anonymous=True)
+def main():
+    rospy.init_node('barcode_node')
+    rospy.loginfo("barcode_node has started.")
+    
+    # 初始化节点
+    rospy.init_node('box_node', anonymous=True)
 
-camera_sub = rospy.Subscriber('/camera/ground', Image, callback)
-pub = rospy.Publisher('box_msg', BoxMsg, queue_size=10)
-rate = rospy.Rate(20)
+    camera_sub = rospy.Subscriber('/camera/ground', Image, callback)
+    pub = rospy.Publisher('box_msg', BoxMsg, queue_size=10)
+    rate = rospy.Rate(20)
 
-# cv识别程序主体
-while(1):
-    if frame is not None:
-        frame = cv2.copyMakeBorder(frame, 10, 10, 10, 10, cv2.BORDER_CONSTANT, value=[255,255,255])
-        height, width = frame.shape[:2]
-        box_msg = BoxMsg()
-        delta = detect_box(frame, width, height)
+    # cv识别程序主体
+    while(1):
+        if frame is not None:
+            frame = cv2.copyMakeBorder(frame, 10, 10, 10, 10, cv2.BORDER_CONSTANT, value=[255,255,255])
+            height, width = frame.shape[:2]
+            box_msg = BoxMsg()
+            delta = detect_box(frame, width, height)
 
-        if delta is None:
-            box_msg.value = False
-        else:
-            box_msg.value = True
-            box_msg.delta_x, box_msg.delta_y= delta
+            if delta is None:
+                box_msg.value = False
+            else:
+                box_msg.value = True
+                box_msg.delta_x, box_msg.delta_y= delta
 
-        pub.publish(box_msg)
+            pub.publish(box_msg)
 
-    rate.sleep()
+        rospy.spin()
+        rate.sleep()
+
+if __name__ == '__main__':
+    main()
