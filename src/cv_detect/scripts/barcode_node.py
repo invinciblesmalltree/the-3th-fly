@@ -24,9 +24,6 @@ def callback(data):
         frame = bridge.imgmsg_to_cv2(data, "bgr8")
 
 def main():
-    rospy.init_node('barcode_node')
-    rospy.loginfo("barcode_node has started.")
-
     # 初始化节点
     rospy.init_node('barcode_node', anonymous=True)
     rgb_sub = rospy.Subscriber('/d435/rgb', Image, callback)
@@ -52,7 +49,6 @@ def main():
 
             pub.publish(bar_msg)
 
-        rospy.spin()
         rate.sleep()
 
 if __name__ == '__main__':
