@@ -18,19 +18,17 @@ def decode_barcode(image):
 
 global frame
 frame = None
-def callback(data):
+def callback(data, bridge=CvBridge()):
     global frame
     if data is not None:
         frame = bridge.imgmsg_to_cv2(data, "bgr8")
-
+        
 def main():
     # 初始化节点
     rospy.init_node('barcode_node', anonymous=True)
     rgb_sub = rospy.Subscriber('/d435/rgb', Image, callback)
     pub = rospy.Publisher('barcode_msg', BarMsg, queue_size=10)
     rate = rospy.Rate(20)
-
-    bridge = CvBridge()
 
     while(1):
         if frame is not None:

@@ -36,7 +36,7 @@ def detect_box(image, width, height):
 
 global frame
 frame = None
-def callback(data):
+def callback(data, bridge=CvBridge()):
     global frame
     if data is not None:
         frame = bridge.imgmsg_to_cv2(data, "bgr8")
@@ -48,8 +48,6 @@ def main():
     camera_sub = rospy.Subscriber('/camera/ground', Image, callback)
     pub = rospy.Publisher('box_msg', BoxMsg, queue_size=10)
     rate = rospy.Rate(20)
-
-    bridge = CvBridge()
 
     while(1):
         if frame is not None:
@@ -67,6 +65,11 @@ def main():
             pub.publish(box_msg)
 
         rate.sleep()
+
+def callback(data):
+    global frame
+    if data is not None:
+        frame = bridge.imgmsg_to_cv2(data, "bgr8")
 
 if __name__ == '__main__':
     main()
