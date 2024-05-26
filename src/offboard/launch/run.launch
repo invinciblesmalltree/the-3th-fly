@@ -1,7 +1,7 @@
 <launch>
   <node name="px4_ACM0_launcher" pkg="mavros" type="px4.ACM0.launch" args="$(find mavros)/launch/px4_ACM0.launch" launch-prefix="bash -c 'sleep 5; $0 $@'" />
 
-  <node name="msg_MID360_launcher" pkg="livox_ros_driver2" type="msg_MID360.launc" args="$(find livox_ros_driver2)/launch_ROS1/msg_MID360.launch" launch-prefix="bash -c 'sleep 10; $0 $@'" />
+  <node name="msg_MID360_launcher" pkg="livox_ros_driver2" type="msg_MID360.launch" args="$(find livox_ros_driver2)/launch_ROS1/msg_MID360.launch" launch-prefix="bash -c 'sleep 10; $0 $@'" />
 
   <node name="mapping_mid360_launcher" pkg="fast_lio" type="mapping_mid360.launch" args="$(find fast_lio)/launch/mapping_mid360.launch" launch-prefix="bash -c 'sleep 15; $0 $@'" />
 
