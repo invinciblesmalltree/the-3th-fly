@@ -31,9 +31,6 @@ led_open = False # led连闪开关
 
 while(1):
     if frame is not None:
-        cv2.imshow('frame', frame)
-        cv2.waitKey(1)
-
         height, width = frame.shape[:2]
 
         bar_msg = BarMsg()

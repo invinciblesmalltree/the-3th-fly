@@ -65,9 +65,6 @@ while(1):
         box_msg = BoxMsg()
         delta = detect_box(frame, width, height)
 
-        cv2.imshow('frame', frame)
-        cv2.waitKey(1)
-
         if delta is None:
             box_msg.value = False
         else:
