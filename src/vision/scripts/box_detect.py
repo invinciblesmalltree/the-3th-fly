@@ -9,17 +9,22 @@ import numpy as np
 
 bridge = CvBridge()
 
-# 定义棕色的HSV范围
+# 扩大棕色的HSV范围
 lower_brown = np.array([5, 50, 50])
 upper_brown = np.array([25, 255, 255])
+
+# 假设的面积阈值
+area_threshold = 1000
 
 
 def image_callback(data):
     try:
-        cv_image = bridge.imgmsg_to_cv2(data, "bgr8")
+        raw_image = bridge.imgmsg_to_cv2(data, "bgr8")
     except CvBridgeError as e:
         rospy.logerr(e)
         return
+
+    cv_image = raw_image[:, raw_image.shape[1] // 4 : raw_image.shape[1] * 3 // 4]
 
     # 转换为HSV色彩空间
     hsv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
@@ -54,19 +59,34 @@ def image_callback(data):
         M = cv2.moments(closest_contour)
         cX = int(M["m10"] / M["m00"])
         cY = int(M["m01"] / M["m00"])
-        box_msg.class_id = 0  # 假设class_id为0表示棕色区域
-        box_msg.x = int(cX - img_center_x)
-        box_msg.y = int(cY - img_center_y)
-        cv2.drawContours(cv_image, [closest_contour], -1, (0, 255, 0), 2)
-        cv2.putText(
-            cv_image,
-            "Brown Area",
-            (cX, cY),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.9,
-            (36, 255, 12),
-            2,
-        )
+        area = cv2.contourArea(closest_contour)
+        if area > 30000:
+            box_msg.class_id = 1  # 面积大于阈值
+        elif area > 10000:
+            box_msg.class_id = 0  # 面积小于阈值
+        else:
+            box_msg.class_id = -1
+            box_msg.x = 0
+            box_msg.y = 0
+        if area > 10000:
+            box_msg.x = int(cX - img_center_x)
+            box_msg.y = int(cY - img_center_y)
+            cv2.drawContours(
+                raw_image,
+                [closest_contour] + raw_image.shape[1] // 4,
+                -1,
+                (0, 255, 0),
+                2,
+            )
+            cv2.putText(
+                raw_image,
+                f"box_{box_msg.class_id} {area}",
+                (cX, cY),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.9,
+                (36, 255, 12),
+                2,
+            )
     else:
         box_msg.class_id = -1
         box_msg.x = 0
@@ -75,7 +95,7 @@ def image_callback(data):
     box_pub.publish(box_msg)
 
     try:
-        img_msg = bridge.cv2_to_imgmsg(cv_image, "bgr8")
+        img_msg = bridge.cv2_to_imgmsg(raw_image, "bgr8")
         image_pub.publish(img_msg)
     except CvBridgeError as e:
         rospy.logerr(e)

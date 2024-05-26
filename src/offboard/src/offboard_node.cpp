@@ -19,7 +19,7 @@ float vector2theta(float x, float y) {
 
 mavros_msgs::State current_state;
 ros_tools::LidarPose lidar_pose_data;
-int region_data;
+int region_data, barcode_data;
 vision::box_data box_data;
 
 void state_cb(const mavros_msgs::State::ConstPtr &msg) { current_state = *msg; }
@@ -34,6 +34,10 @@ void region_cb(const std_msgs::Int32::ConstPtr &msg) {
 
 void box_cb(const vision::box_data::ConstPtr &msg) { box_data = *msg; }
 
+void barcode_cb(const std_msgs::Int32::ConstPtr &msg) {
+    barcode_data = msg->data;
+}
+
 int main(int argc, char **argv) {
     ros::init(argc, argv, "offb_node");
     ros::NodeHandle nh;
@@ -46,6 +50,8 @@ int main(int argc, char **argv) {
         nh.subscribe<std_msgs::Int32>("/region_data", 10, region_cb);
     ros::Subscriber box_data_sub =
         nh.subscribe<vision::box_data>("/yolov5/box_detect", 10, box_cb);
+    ros::Subscriber barcode_data_sub =
+        nh.subscribe<std_msgs::Int32>("/barcode_data", 10, barcode_cb);
     ros::Publisher local_pos_pub = nh.advertise<geometry_msgs::PoseStamped>(
         "/mavros/setpoint_position/local", 10);
     ros::Publisher velocity_pub = nh.advertise<geometry_msgs::TwistStamped>(
@@ -66,23 +72,6 @@ int main(int argc, char **argv) {
         target(1.5, 0, 1.8, 0),    target(1.5, 2.7, 1.8, 0),
         target(0.65, 2.7, 1.8, 0), target(0.65, 0, 1.8, 0),
         target(0, 0, 1.8, 0),      target(0, 0, 0.5, 0)};
-    // std::vector<target> targets = {
-    //     target(4.3, -0.2, 1.8, 0),     target(4.3, -0.2, 1.8, 0),
-    //     target(4.3, 1.2, 1.8, 0), target(4.3, -0.2, 1.8, 0),
-    //     target(4.1, -0.2, 1.8, 0), target(4.1, 1.2, 1.8, 0),
-    //     target(3.9, 1.2, 1.8, 0), target(3.9, -0.2, 1.8, 0),
-    //     target(3.7, -0.2, 1.8, 0), target(3.7, 1.2, 1.8, 0),
-    //     target(3.5, 1.2, 1.8, 0), target(3.5, -0.2, 1.8, 0),
-    //     target(3.3, -0.2, 1.8, 0), target(3.3, 1.2, 1.8, 0),
-    //     target(3.1, 1.2, 1.8, 0), target(3.1, -0.2, 1.8, 0),
-    //     target(2.9, -0.2, 1.8, 0), target(2.9, 1.2, 1.8, 0),
-    //     target(2.7, 2.2, 1.8, 0), target(2.7, -0.2, 1.8, 0),
-    //     target(2.5, -0.2, 1.8, 0), target(2.5, 2.2, 1.8, 0),
-    //     target(2.3, 2.2, 1.8, 0), target(2.3, -0.2, 1.8, 0),
-    //     target(2.1, -0.2, 1.8, 0), target(2.1, 2.2, 1.8, 0),
-    //     target(1.9, 2.2, 1.8, 0), target(1.9, -0.2, 1.8, 0),
-    //     target(1.7, -0.2, 1.8, 0), target(1.7, 2.2, 1.8, 0),
-    //     target(1.5, 2.2, 1.8, 0), target(1.5, -0.2, 1.8, 0)};
 
     while (ros::ok() && !current_state.connected) {
         ros::spinOnce();
@@ -101,7 +90,9 @@ int main(int argc, char **argv) {
     int mode = 0;
     bool region_vis[7]{};
     geometry_msgs::TwistStamped box_forward_vel;
-    target box_center(0, 0, 1.8, 0);
+    target box_center(0, 0, 1.8, 0), passed_point(0, 0, 1.8, -M_PI / 2),
+        scan_point(0, 0, 1.8, -M_PI / 2);
+    int box_id = -1, current_barcode;
 
     while (ros::ok()) {
         if (!current_state.armed &&
@@ -148,8 +139,9 @@ int main(int argc, char **argv) {
                 targets[target_index].fly_to_target(local_pos_pub);
                 if (region_data && !region_vis[region_data] &&
                     ~box_data.class_id) {
-                    ROS_INFO("Box %d detected", box_data.class_id);
-                    region_vis[region_data] = true;
+                    ROS_INFO("Box detected, current region: %d", region_data);
+                    box_forward_vel.twist.linear.x = -box_data.y / 1000.0;
+                    box_forward_vel.twist.linear.y = -box_data.x / 1000.0;
                     mode = 1;
                     ROS_INFO("Mode 1");
                 }
@@ -162,20 +154,52 @@ int main(int argc, char **argv) {
             if (~box_data.class_id) {
                 box_forward_vel.twist.linear.x = -box_data.y / 1000.0;
                 box_forward_vel.twist.linear.y = -box_data.x / 1000.0;
-                if (box_data.x * box_data.x + box_data.y * box_data.y < 100) {
-                    mode = 0;
-                    ROS_INFO("Mode 0");
+                if (box_data.x * box_data.x + box_data.y * box_data.y < 200) {
+                    ROS_INFO("Box %d detected", box_data.class_id);
+                    region_vis[region_data] = true;
+                    box_center.x = lidar_pose_data.x;
+                    box_center.y = lidar_pose_data.y;
+                    box_id = box_data.class_id;
+                    scan_point.x = passed_point.x = box_center.x;
+                    scan_point.y = passed_point.y = box_center.y + 0.7;
+                    box_center.reached = scan_point.reached = false;
+                    scan_point.z = box_id == 0 ? 0.65 : 0.425;
+                    current_barcode = -1;
+                    mode = 2;
+                    ROS_INFO("Mode 2");
                 }
             }
             velocity_pub.publish(box_forward_vel);
-        } else if (mode == 2) {
-            if (!targets[target_index].pos_check(lidar_pose_data)) {
-                targets[target_index].fly_to_target(local_pos_pub);
+        } else if (mode == 2) { // 扫码
+            if (!passed_point.pos_check(lidar_pose_data)) {
+                passed_point.fly_to_target(local_pos_pub);
             } else {
-                ROS_INFO("Reached target %zu", target_index);
-                target_index++;
-                mode = 0;
-                ROS_INFO("Mode 0");
+                scan_point.fly_to_target(local_pos_pub);
+                if (~barcode_data) {
+                    current_barcode = barcode_data;
+                    ROS_INFO("Barcode %d detected", current_barcode);
+                    passed_point.reached = false;
+                    mode = 3;
+                    ROS_INFO("Mode 3");
+                }
+            }
+        } else if (mode == 3) { // 返航到箱子中央
+            if (!passed_point.pos_check(lidar_pose_data)) {
+                passed_point.fly_to_target(local_pos_pub);
+            } else {
+                if (current_barcode & 1) {
+                    if (!box_center.pos_check(lidar_pose_data)) {
+                        box_center.fly_to_target(local_pos_pub);
+                    } else {
+                        // TODO: 投掷
+                        ROS_INFO("Throwing");
+                        mode = 0;
+                        ROS_INFO("Mode 0");
+                    }
+                } else {
+                    mode = 0;
+                    ROS_INFO("Mode 0");
+                }
             }
         }
 
