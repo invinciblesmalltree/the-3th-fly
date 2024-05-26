@@ -48,8 +48,10 @@ def normal_blink(times):
         time.sleep(0.5)
 
 bridge = CvBridge()
+global frame
 frame = None
 def callback(data):
+    global frame
     frame = np.array(bridge.imgmsg_to_cv2(data, "bgr8"))
 
 def main():

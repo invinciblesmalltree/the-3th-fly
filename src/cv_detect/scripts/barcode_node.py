@@ -18,8 +18,10 @@ def decode_barcode(image):
     return int(barcode_data)
 
 bridge = CvBridge()
+global frame
 frame = None
 def callback(data):
+    global frame
     frame = np.array(bridge.imgmsg_to_cv2(data, "bgr8"))
 
 def main():
