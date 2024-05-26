@@ -4,9 +4,7 @@ import rospy
 import cv2
 import numpy as np
 import time
-from cv_bridge import CvBridge
 from cv_detect.msg import BoxMsg
-from sensor_msgs.msg import Image
 
 def detect_box(image, width, height):
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
@@ -27,7 +25,7 @@ def detect_box(image, width, height):
             delta_x = int(M['m10'] / M['m00']-width/2)
             delta_y = -int(M['m01'] / M['m00']-height/2)
             x, y, w, h = cv2.boundingRect(approx)
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 3)
+            #cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 3)
 
             return delta_x, delta_y
 

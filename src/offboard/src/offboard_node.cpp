@@ -236,13 +236,13 @@ int main(int argc, char **argv) {
             case 1: // 定点巡防
                 {
                     ROS_INFO("Mode 1");
-                    if(!targets[target_index].pos_check(lidar_pose_data))
-                    {
-                        targets[target_index].fly_to_target(local_pos_pub);
-                    }
-                    else if (box_data.value && check_region(lidar_pose_data, regions))
+                    if(box_data.value && check_region(lidar_pose_data, regions))
                     {
                         mode = 2;
+                    }
+                    else if (!targets[target_index].pos_check(lidar_pose_data))
+                    {
+                        targets[target_index].fly_to_target(local_pos_pub);
                     }
                     else if(targets[target_index].pos_check(lidar_pose_data))
                     {
