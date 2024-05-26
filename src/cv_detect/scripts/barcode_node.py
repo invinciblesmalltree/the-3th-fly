@@ -17,12 +17,12 @@ def decode_barcode(image):
     barcode_data = barcodes[0].data.decode('utf-8')
     return int(barcode_data)
 
-bridge = CvBridge()
 global frame
 frame = None
 def callback(data):
     global frame
-    frame = np.array(bridge.imgmsg_to_cv2(data, "bgr8"))
+    if data is not None:
+        frame = bridge.imgmsg_to_cv2(data, "bgr8")
 
 def main():
     rospy.init_node('barcode_node')
@@ -34,8 +34,7 @@ def main():
     pub = rospy.Publisher('barcode_msg', BarMsg, queue_size=10)
     rate = rospy.Rate(20)
 
-    # cv识别程序主体
-    led_open = False # led连闪开关
+    bridge = CvBridge()
 
     while(1):
         if frame is not None:
@@ -49,7 +48,6 @@ def main():
                 if ret < 1 or ret > 9:
                     rate.sleep()
                     continue
-                led_open = True
                 bar_msg.n= ret
                 rospy.loginfo('Barcode: %s', bar_msg.n)
 

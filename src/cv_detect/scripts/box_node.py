@@ -47,12 +47,12 @@ def normal_blink(times):
         GPIO.output(LED_PIN, GPIO.LOW)
         time.sleep(0.5)
 
-bridge = CvBridge()
 global frame
 frame = None
 def callback(data):
     global frame
-    frame = np.array(bridge.imgmsg_to_cv2(data, "bgr8"))
+    if data is not None:
+        frame = bridge.imgmsg_to_cv2(data, "bgr8")
 
 def main():
     rospy.init_node('barcode_node')
@@ -65,7 +65,8 @@ def main():
     pub = rospy.Publisher('box_msg', BoxMsg, queue_size=10)
     rate = rospy.Rate(20)
 
-    # cv识别程序主体
+    bridge = CvBridge()
+
     while(1):
         if frame is not None:
             frame = cv2.copyMakeBorder(frame, 10, 10, 10, 10, cv2.BORDER_CONSTANT, value=[255,255,255])
