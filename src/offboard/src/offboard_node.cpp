@@ -36,6 +36,7 @@ void fly_to_scan(ros::Publisher &local_pos_pub, ros_tools::LidarPose &lidar_pose
             switch(scan_mode)
             {
                 case 1: // 飞到scan点
+                {
                     while(!scanPoint.pos_check(lidar_pose_data))
                     {
                         scanPoint.fly_to_target(local_pos_pub);
@@ -44,7 +45,10 @@ void fly_to_scan(ros::Publisher &local_pos_pub, ros_tools::LidarPose &lidar_pose
                     }
                     scan_mode = 2;
                     last_request = ros::Time::now();
+                    break;
+                }
                 case 2: // 定点扫码, 判断奇偶并返回scan点
+                {
                     if(barcode_data.n != -1 && barcode_data.n%2 == 1)
                     {
                         scan_mode = 3; //奇数投掷
@@ -70,8 +74,10 @@ void fly_to_scan(ros::Publisher &local_pos_pub, ros_tools::LidarPose &lidar_pose
                     }
                     else
                     { mode = 1; }
-
+                    break;
+                }
                 case 3: // 奇数前往投掷点
+                {
                     while(!scanPoint.pos_check(lidar_pose_data))
                     {
                         scanPoint.fly_to_target(local_pos_pub);
@@ -85,11 +91,16 @@ void fly_to_scan(ros::Publisher &local_pos_pub, ros_tools::LidarPose &lidar_pose
                         rate.sleep();
                     }
                     scan_mode = 4;
+                    break;
+                }
                 case 4: // 投掷
+                {
                     /*
                     ** TODO: 投掷
                     */
-                   mode = 3;
+                    mode = 3;
+                    break;
+                }
             }
         }
 
@@ -245,6 +256,7 @@ int main(int argc, char **argv) {
                         break;
                     }
                 }
+                break;
             case 2: // 对准箱子，任务动作
                 {
                     ROS_INFO("Mode 2");
@@ -264,6 +276,7 @@ int main(int argc, char **argv) {
                         velocity_pub.publish(vel_msg);
                     }
                 }
+                break;
             case 3: // 返回巡防
                 {
                     ROS_INFO("Mode 3");
@@ -273,6 +286,7 @@ int main(int argc, char **argv) {
                     }
                     else{ mode = 1; }
                 }
+                break;
         }
 
         ros::spinOnce();
