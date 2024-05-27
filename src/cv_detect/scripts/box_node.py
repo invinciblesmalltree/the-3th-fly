@@ -20,7 +20,7 @@ def detect_box(image, width, height):
         area = cv2.contourArea(contour)
         approx = cv2.approxPolyDP(contour, 0.04 * cv2.arcLength(contour, True), True)
 
-        if (len(approx) == 4 or len(approx) == 5) and area > 10000:
+        if (len(approx) == 4 or len(approx) == 5) and area > 7000:
             M = cv2.moments(contour)
             delta_x = int(M['m10'] / M['m00']-width/2)
             delta_y = -int(M['m01'] / M['m00']-height/2)
@@ -45,8 +45,8 @@ def main():
             while True:
                 ret, frame = capture.read()
                 if ret:
-                    x1,x2=120,520
-                    y1,y2=100,380
+                    x1,x2=160,480
+                    y1,y2=120,360
                     frame=frame[y1:y2,x1:x2]
                     frame = cv2.copyMakeBorder(frame, 10, 10, 10, 10, cv2.BORDER_CONSTANT, value=[255, 255, 255])
                     height, width = frame.shape[:2]
