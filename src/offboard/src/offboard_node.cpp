@@ -56,6 +56,8 @@ int main(int argc, char **argv) {
         "/mavros/setpoint_position/local", 10);
     ros::Publisher velocity_pub = nh.advertise<geometry_msgs::TwistStamped>(
         "/mavros/setpoint_velocity/cmd_vel", 10);
+    ros::Publisher led_pub = nh.advertise<std_msgs::Int32>(
+        "/led", 10);
     ros::ServiceClient arming_client =
         nh.serviceClient<mavros_msgs::CommandBool>("/mavros/cmd/arming");
     ros::ServiceClient command_client =
@@ -88,7 +90,7 @@ int main(int argc, char **argv) {
 
     size_t target_index = 0;
     int mode = 0;
-    bool region_vis[7]{};
+    bool region_vis[7]{}, first_box = true;
     geometry_msgs::TwistStamped box_forward_vel;
     target box_center(0, 0, 1.8, 0), passed_point(0, 0, 1.8, -M_PI / 2),
         scan_point(0, 0, 1.8, -M_PI / 2);
@@ -155,7 +157,7 @@ int main(int argc, char **argv) {
                 box_forward_vel.twist.linear.x = -box_data.y / 1000.0;
                 box_forward_vel.twist.linear.y = -box_data.x / 1000.0;
                 if (box_data.x * box_data.x + box_data.y * box_data.y < 200) {
-                    ROS_INFO("Box %d detected", box_data.class_id);
+                    ROS_INFO("Box %d arrived", box_data.class_id);
                     region_vis[region_data] = true;
                     box_center.x = lidar_pose_data.x;
                     box_center.y = lidar_pose_data.y;
@@ -165,6 +167,9 @@ int main(int argc, char **argv) {
                     box_center.reached = scan_point.reached = false;
                     scan_point.z = box_id == 0 ? 0.65 : 0.425;
                     current_barcode = -1;
+                    std_msgs::Int32 led_msg;
+                    led_msg->data = box_data.class_id;
+                    led_pub.publish(led_msg);
                     mode = 2;
                     ROS_INFO("Mode 2");
                 }
@@ -177,7 +182,7 @@ int main(int argc, char **argv) {
                 scan_point.fly_to_target(local_pos_pub);
                 if (~barcode_data) {
                     current_barcode = barcode_data;
-                    ROS_INFO("Barcode %d detected", current_barcode);
+                    ROS_INFO("Barcode: %d", current_barcode);
                     passed_point.reached = false;
                     mode = 3;
                     ROS_INFO("Mode 3");
