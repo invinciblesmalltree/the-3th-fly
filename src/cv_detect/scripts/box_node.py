@@ -55,6 +55,7 @@ def main():
 
                     if delta is None:
                         box_msg.value = False
+                        box_msg.delta_x, box_msg.delta_y= 0,0
                     else:
                         box_msg.value = True
                         box_msg.delta_x, box_msg.delta_y= delta

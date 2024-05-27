@@ -37,6 +37,7 @@ void fly_to_scan(int &scan_mode, ros::Publisher &local_pos_pub, ros_tools::Lidar
     {
         case 1: // 飞到scan点
         {
+            ROS_INFO("Scan mode 1");
             while(!scanPoint.pos_check(lidar_pose_data))
             {
                 scanPoint.fly_to_target(local_pos_pub);
@@ -49,6 +50,7 @@ void fly_to_scan(int &scan_mode, ros::Publisher &local_pos_pub, ros_tools::Lidar
         }
         case 2: // 定点扫码, 判断奇偶并返回scan点
         {
+            ROS_INFO("Scan mode 2");
             if(barcode_data.n != -1 && barcode_data.n%2 == 1)
             {
                 scan_mode = 3; //奇数投掷
@@ -79,6 +81,7 @@ void fly_to_scan(int &scan_mode, ros::Publisher &local_pos_pub, ros_tools::Lidar
         }
         case 3: // 奇数前往投掷点
         {
+            ROS_INFO("Scan mode 3");
             while(!scanPoint.pos_check(lidar_pose_data))
             {
                 scanPoint.fly_to_target(local_pos_pub);
@@ -96,6 +99,7 @@ void fly_to_scan(int &scan_mode, ros::Publisher &local_pos_pub, ros_tools::Lidar
         }
         case 4: // 投掷
         {
+            ROS_INFO("Scan mode 4");
             /*
             ** TODO: 投掷
             */
@@ -276,6 +280,7 @@ int main(int argc, char **argv) {
                         ros::spinOnce();
                         rate.sleep();
                     }
+                    ROS_INFO("Get top");
 
                     if(sqrt(pow(box_data.delta_x, 2) + pow(box_data.delta_y, 2)) < 100)
                     {
@@ -291,6 +296,7 @@ int main(int argc, char **argv) {
                 }
             case 3:
                 {
+                    ROS_INFO("Mode 3");
                     fly_to_scan(scan_mode, local_pos_pub, lidar_pose_data, mode, barcode_data, rate);
                 }
             case 4: // 返回巡防
