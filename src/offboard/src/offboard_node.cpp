@@ -236,7 +236,15 @@ int main(int argc, char **argv) {
             case 1: // 定点巡防
                 {
                     ROS_INFO("Mode 1");
-                    if(box_data.value && check_region(lidar_pose_data, regions))
+                    if (target_index >= targets.size())
+                    {
+                        ROS_INFO("All targets reached");
+                        arm_cmd.request.value = false;
+                        arming_client.call(arm_cmd);
+                        ROS_INFO("Vehicle disarmed");
+                        break;
+                    }
+                    else if (box_data.value && check_region(lidar_pose_data, regions))
                     {
                         mode = 2;
                     }
@@ -248,14 +256,6 @@ int main(int argc, char **argv) {
                     {
                         ROS_INFO("Reached target %zu", target_index);
                         target_index++;
-                    }
-                    else if (target_index >= targets.size())
-                    {
-                        ROS_INFO("All targets reached");
-                        arm_cmd.request.value = false;
-                        arming_client.call(arm_cmd);
-                        ROS_INFO("Vehicle disarmed");
-                        break;
                     }
                 }
                 break;
