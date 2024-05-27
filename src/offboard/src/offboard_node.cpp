@@ -19,7 +19,7 @@ float vector2theta(float x, float y) {
 
 mavros_msgs::State current_state;
 ros_tools::LidarPose lidar_pose_data;
-int region_data, barcode_data;
+int region_data, barcode_data, offboard_order = 0;
 vision::box_data box_data;
 
 void state_cb(const mavros_msgs::State::ConstPtr &msg) { current_state = *msg; }
@@ -38,6 +38,10 @@ void barcode_cb(const std_msgs::Int32::ConstPtr &msg) {
     barcode_data = msg->data;
 }
 
+void offboard_order_cb(const std_msgs::Int32::ConstPtr &msg) {
+    offboard_order = msg->data;
+}
+
 int main(int argc, char **argv) {
     ros::init(argc, argv, "offb_node");
     ros::NodeHandle nh;
@@ -52,12 +56,17 @@ int main(int argc, char **argv) {
         nh.subscribe<vision::box_data>("/yolov5/box_detect", 10, box_cb);
     ros::Subscriber barcode_data_sub =
         nh.subscribe<std_msgs::Int32>("/barcode_data", 10, barcode_cb);
+    ros::Subscriber offboard_order_sub =
+        nh.subscribe<std_msgs::Int32>("/offboard_order", 10, offboard_order_cb);
     ros::Publisher local_pos_pub = nh.advertise<geometry_msgs::PoseStamped>(
         "/mavros/setpoint_position/local", 10);
     ros::Publisher velocity_pub = nh.advertise<geometry_msgs::TwistStamped>(
         "/mavros/setpoint_velocity/cmd_vel", 10);
-    ros::Publisher led_pub = nh.advertise<std_msgs::Int32>(
-        "/led", 10);
+    ros::Publisher led_pub = nh.advertise<std_msgs::Int32>("/led", 10);
+    ros::Publisher steering_engine_pub =
+        nh.advertise<std_msgs::Int32>("/steering_engine", 10);
+    ros::Publisher screen_data_pub =
+        nh.advertise<std_msgs::Int32>("/screen_data", 10);
     ros::ServiceClient arming_client =
         nh.serviceClient<mavros_msgs::CommandBool>("/mavros/cmd/arming");
     ros::ServiceClient command_client =
@@ -68,12 +77,20 @@ int main(int argc, char **argv) {
 
     std::vector<target> targets = {
         target(0, 0, 1.8, 0),      target(0, 3.4, 1.8, 0),
-        target(3.75, 3.4, 1.8, 0), target(3.75, 0, 1.8, 0),
-        target(3.05, 0, 1.8, 0),   target(3.05, 2.7, 1.8, 0),
-        target(2.25, 2.7, 1.8, 0), target(2.25, 0, 1.8, 0),
-        target(1.5, 0, 1.8, 0),    target(1.5, 2.7, 1.8, 0),
-        target(0.65, 2.7, 1.8, 0), target(0.65, 0, 1.8, 0),
-        target(0, 0, 1.8, 0),      target(0, 0, 0.5, 0)};
+        target(3.75, 3.4, 1.8, 0), target(3.75, 2.7, 1.8, 0), // 区域1
+        target(3.75, 1.2, 1.8, 0),                            // 区域2
+        target(3.75, 0.6, 1.8, 0),                            // 区域2
+        target(3.75, 0, 1.8, 0),   target(3.05, 0, 1.8, 0),
+        target(3.05, 2.7, 1.8, 0), target(2.35, 2.7, 1.8, 0), // 区域3
+        target(2.2, 1.2, 1.8, 0),                             // 区域4
+        target(2.2, 0, 1.8, 0),    target(1.5, 0, 1.8, 0),
+        target(1.5, 2.7, 1.8, 0),  target(0.8, 2.7, 1.8, 0), // 区域5
+        target(0.65, 1.2, 1.8, 0),                           // 区域6
+        target(0.65, 0, 1.8, 0),   target(0, 0, 1.8, 0),
+        target(0, 0, 0.5, 0)};
+
+    bool is_region_center[] = {0, 0, 0, 1, 1, 1, 0, 0, 0, 1,
+                               1, 0, 0, 0, 1, 1, 0, 0, 0};
 
     while (ros::ok() && !current_state.connected) {
         ros::spinOnce();
@@ -90,11 +107,16 @@ int main(int argc, char **argv) {
 
     size_t target_index = 0;
     int mode = 0;
-    bool region_vis[7]{}, first_box = true;
+    bool region_vis[7]{}, first_box = true, has_thrown = false;
     geometry_msgs::TwistStamped box_forward_vel;
     target box_center(0, 0, 1.8, 0), passed_point(0, 0, 1.8, -M_PI / 2),
         scan_point(0, 0, 1.8, -M_PI / 2);
     int box_id = -1, current_barcode;
+
+    while (ros::ok() && !offboard_order) {
+        ros::spinOnce();
+        rate.sleep();
+    }
 
     while (ros::ok()) {
         if (!current_state.armed &&
@@ -139,16 +161,18 @@ int main(int argc, char **argv) {
                 break;
             } else if (!targets[target_index].pos_check(lidar_pose_data)) {
                 targets[target_index].fly_to_target(local_pos_pub);
-                if (region_data && !region_vis[region_data] &&
-                    ~box_data.class_id) {
+            } else {
+                ROS_INFO("Reached target %zu", target_index);
+                if (is_region_center[target_index] &&
+                    !region_vis[region_data] && ~box_data.class_id) {
                     ROS_INFO("Box detected, current region: %d", region_data);
-                    box_forward_vel.twist.linear.x = -box_data.y / 1000.0;
-                    box_forward_vel.twist.linear.y = -box_data.x / 1000.0;
+                    box_forward_vel.twist.linear.x = -box_data.y / 500.0;
+                    box_forward_vel.twist.linear.y = -box_data.x / 500.0;
                     mode = 1;
                     ROS_INFO("Mode 1");
                 }
-            } else {
-                ROS_INFO("Reached target %zu", target_index);
+                if(is_region_center[target_index])
+                ROS_INFO("Region center %d reached", region_data);
                 target_index++;
             }
         } else if (mode == 1) { // 飞往箱子中心
@@ -156,23 +180,25 @@ int main(int argc, char **argv) {
             if (~box_data.class_id) {
                 box_forward_vel.twist.linear.x = -box_data.y / 1000.0;
                 box_forward_vel.twist.linear.y = -box_data.x / 1000.0;
-                if (box_data.x * box_data.x + box_data.y * box_data.y < 200) {
+                if (box_data.x * box_data.x + box_data.y * box_data.y < 500) {
                     ROS_INFO("Box %d arrived", box_data.class_id);
                     region_vis[region_data] = true;
                     box_center.x = lidar_pose_data.x;
                     box_center.y = lidar_pose_data.y;
                     box_id = box_data.class_id;
                     scan_point.x = passed_point.x = box_center.x;
-                    scan_point.y = passed_point.y = box_center.y + 0.7;
+                    scan_point.y = passed_point.y = box_center.y + 1;
                     box_center.reached = scan_point.reached = false;
                     scan_point.z = box_id == 0 ? 0.65 : 0.425;
                     current_barcode = -1;
                     std_msgs::Int32 led_msg;
-                    led_msg->data = box_data.class_id;
+                    led_msg.data = box_data.class_id;
                     led_pub.publish(led_msg);
-                    ROS_INFO(box_data.class_id == 0
-                                 ? "Red led has been lighted"
-                                 : "Green led has been lighted");
+                    ROS_INFO(box_data.class_id == 0 ? "Red led lighted"
+                                                    : "Green led lighted");
+                    std_msgs::Int32 screen_data;
+                    screen_data.data = region_data;
+                    screen_data_pub.publish(screen_data);
                     mode = 2;
                     ROS_INFO("Mode 2");
                 }
@@ -199,10 +225,19 @@ int main(int argc, char **argv) {
                     if (!box_center.pos_check(lidar_pose_data)) {
                         box_center.fly_to_target(local_pos_pub);
                     } else {
-                        // TODO: 投掷
-                        ROS_INFO("Throwing");
-                        mode = 0;
-                        ROS_INFO("Mode 0");
+                        if (!has_thrown) {
+                            std_msgs::Int32 streering_engine_msg;
+                            streering_engine_msg.data = 1;
+                            steering_engine_pub.publish(streering_engine_msg);
+                            ROS_INFO("Throwing");
+                            last_request = ros::Time::now();
+                            has_thrown = true;
+                        } else if (ros::Time::now() - last_request >
+                                   ros::Duration(1.0)) {
+                            mode = 0;
+                            ROS_INFO("Mode 0");
+                        } else
+                            box_center.fly_to_target(local_pos_pub);
                     }
                 } else {
                     mode = 0;

@@ -3,5 +3,6 @@
     <node pkg="vision" type="box_detect.py" name="box_detect" />
     <node pkg="vision" type="barcode_scanner.py" name="barcode_scanner" />
     <node pkg="vision" type="region" name="region" />
+    <node pkg="screen" type="screen.py" name="screen" />
     <node pkg="offboard" type="offboard_node" name="offboard_node" output="screen" launch-prefix="bash -c 'sleep 5; $0 $@'" />
 </launch>

@@ -24,7 +24,7 @@ def image_callback(data):
         rospy.logerr(e)
         return
 
-    cv_image = raw_image[:, raw_image.shape[1] // 4 : raw_image.shape[1] * 3 // 4]
+    cv_image = raw_image.copy()
 
     # 转换为HSV色彩空间
     hsv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
@@ -49,7 +49,9 @@ def image_callback(data):
         cY = int(M["m01"] / M["m00"])
         distance = ((cX - img_center_x) ** 2 + (cY - img_center_y) ** 2) ** 0.5
 
-        if distance < min_distance:
+        if (
+            min_distance == float("inf") or cv2.contourArea(contour) > 10000
+        ) and distance < min_distance:
             min_distance = distance
             closest_contour = contour
 
@@ -61,9 +63,9 @@ def image_callback(data):
         cY = int(M["m01"] / M["m00"])
         area = cv2.contourArea(closest_contour)
         if area > 30000:
-            box_msg.class_id = 1  # 面积大于阈值
+            box_msg.class_id = 0  # 面积大于阈值
         elif area > 10000:
-            box_msg.class_id = 0  # 面积小于阈值
+            box_msg.class_id = 1  # 面积小于阈值
         else:
             box_msg.class_id = -1
             box_msg.x = 0
@@ -71,22 +73,22 @@ def image_callback(data):
         if area > 10000:
             box_msg.x = int(cX - img_center_x)
             box_msg.y = int(cY - img_center_y)
-            cv2.drawContours(
-                raw_image,
-                [closest_contour] + raw_image.shape[1] // 4,
-                -1,
-                (0, 255, 0),
-                2,
-            )
-            cv2.putText(
-                raw_image,
-                f"box_{box_msg.class_id} {area}",
-                (cX, cY),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.9,
-                (36, 255, 12),
-                2,
-            )
+        cv2.drawContours(
+            raw_image,
+            [closest_contour],
+            -1,
+            (0, 255, 0),
+            2,
+        )
+        cv2.putText(
+            raw_image,
+            f"box_{box_msg.class_id} {area}",
+            (cX, cY),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.9,
+            (36, 255, 12),
+            2,
+        )
     else:
         box_msg.class_id = -1
         box_msg.x = 0
