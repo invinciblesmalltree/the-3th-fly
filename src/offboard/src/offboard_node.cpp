@@ -170,6 +170,9 @@ int main(int argc, char **argv) {
                     std_msgs::Int32 led_msg;
                     led_msg->data = box_data.class_id;
                     led_pub.publish(led_msg);
+                    ROS_INFO(box_data.class_id == 0
+                                 ? "Red led has been lighted"
+                                 : "Green led has been lighted");
                     mode = 2;
                     ROS_INFO("Mode 2");
                 }
