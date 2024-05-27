@@ -277,7 +277,7 @@ int main(int argc, char **argv) {
                     while(!regions[current_region].top.pos_check(lidar_pose_data))
                     {
                         regions[current_region].top.fly_to_target(local_pos_pub);
-                        //ROS_INFO("current region %d",current_region);
+                        ROS_INFO("current region %d",current_region);
                         ros::spinOnce();
                         rate.sleep();
                     }
