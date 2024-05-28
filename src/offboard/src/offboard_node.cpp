@@ -12,7 +12,16 @@
 #include <std_msgs/Int32.h>
 #include <vector>
 
-
+int current_region = -1;
+int mode = 1;
+ros::Time last_request;
+size_t target_index = 0;
+target debox_point(0, 0, 1.8, 0);
+int scan_mode=1;   
+target scanPoint(0, 0, 1.8, M_PI);      // 扫码起始点
+target scanPoint1(0, 0, 0.7, M_PI);     // 大箱子扫码点
+target scanPoint2(0, 0, 0.45, M_PI);    // 小箱子扫码点
+target top(0, 0, 1.8, M_PI);            // 箱子顶部
 
 class region
 {
@@ -126,17 +135,6 @@ bool check_region(ros_tools::LidarPose &lidar_pose_data, std::vector<region> &re
         return true;
     }
 }
-
-int current_region = -1;
-int mode = 1;
-ros::Time last_request;
-size_t target_index = 0;
-target debox_point(0, 0, 1.8, 0);
-int scan_mode=1;   
-target scanPoint(0, 0, 1.8, M_PI);      // 扫码起始点
-target scanPoint1(0, 0, 0.7, M_PI);     // 大箱子扫码点
-target scanPoint2(0, 0, 0.45, M_PI);    // 小箱子扫码点
-target top(0, 0, 1.8, M_PI);            // 箱子顶部
 
 mavros_msgs::State current_state;
 ros_tools::LidarPose lidar_pose_data;
