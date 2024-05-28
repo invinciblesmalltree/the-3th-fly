@@ -33,7 +33,7 @@ class region
         region(float center_x, float center_y, float length, float width):top(center_x, center_y, 1.8, M_PI),center_x(center_x),center_y(center_y),length(length),width(width) {}
 };
 
-void fly_to_scan(int &scan_mode, ros::Publisher &local_pos_pub, ros_tools::LidarPose &lidar_pose_data, cv_detect::BarMsg barcode_data, ros::Rate rate, int &mode=mode, target scanPoint=scanPoint, target scanPoint1=scanPoint1, target scanPoint2=scanPoint2, target top=top)
+void fly_to_scan(int &scan_mode, ros::Publisher &local_pos_pub, ros_tools::LidarPose &lidar_pose_data, cv_detect::BarMsg barcode_data, ros::Rate rate, int &mode, target scanPoint, target scanPoint1, target scanPoint2, target top)
 {
     switch(scan_mode)
     {
@@ -292,7 +292,7 @@ int main(int argc, char **argv) {
             case 3:
                 {
                     ROS_INFO("Mode 3");
-                    fly_to_scan(scan_mode, local_pos_pub, lidar_pose_data, barcode_data, rate);
+                    fly_to_scan(scan_mode, local_pos_pub, lidar_pose_data, barcode_data, rate, mode, scanPoint, scanPoint1, scanPoint2, top);
                     break;
                 }
             case 4: // 返回巡防
