@@ -15,19 +15,16 @@ def decode_barcode(image):
     barcode_data = barcodes[0].data.decode('utf-8')
     return int(barcode_data)
 
-def d435_2cv2():
-    pipeline = rs.pipeline()
-    config = rs.config()
-    config.enable_stream(rs.stream.color, 1280, 720, rs.format.bgr8, 30)
-    config.enable_stream(rs.stream.depth, 1280, 720, rs.format.z16, 30)
-    pipeline.start(config)
-
 def main():
     rospy.init_node('barcode_node', anonymous=True)
     pub = rospy.Publisher('barcode_msg', BarMsg, queue_size=10)
     rate = rospy.Rate(20)
 
-    d435_2cv2()
+    pipeline = rs.pipeline()
+    config = rs.config()
+    config.enable_stream(rs.stream.color, 1280, 720, rs.format.bgr8, 30)
+    config.enable_stream(rs.stream.depth, 1280, 720, rs.format.z16, 30)
+    pipeline.start(config)
 
     try:
         while not rospy.is_shutdown():
