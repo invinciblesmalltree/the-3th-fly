@@ -5,7 +5,7 @@ import serial
 from std_msgs.msg import Int32
 
 # 配置串口
-ser = serial.Serial("/tmp/ttyTHS0", baudrate=9600, timeout=1)
+ser = serial.Serial("/dev/ttyTHS0", baudrate=9600, timeout=1)
 
 # 发布者
 pub = rospy.Publisher("/offboard_order", Int32, queue_size=10)
@@ -22,11 +22,16 @@ rospy.init_node("screen", anonymous=True)
 # 订阅者
 rospy.Subscriber("/screen_data", Int32, screen_data_callback)
 
+ser.write(b"rest\xff\xff\xff")
+
 while not rospy.is_shutdown():
     if ser.in_waiting > 0:
-        line = ser.readline().decode("utf-8").strip()
-        if line == "offboard":
-            rospy.loginfo("Received offboard from serial, start offboarding")
-            pub.publish(Int32(1))
+        try:
+            line = ser.readline().decode("utf-8").strip()
+            if line == "offboard":
+                rospy.loginfo("Received offboard from serial, start offboarding")
+                pub.publish(Int32(1))
+        except Exception as e:
+            pass
 
     rospy.sleep(0.1)

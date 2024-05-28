@@ -10,8 +10,8 @@ import numpy as np
 bridge = CvBridge()
 
 # 扩大棕色的HSV范围
-lower_brown = np.array([5, 50, 50])
-upper_brown = np.array([25, 255, 255])
+lower_brown = np.array([5, 50, 80])
+upper_brown = np.array([25, 255, 200])
 
 # 假设的面积阈值
 area_threshold = 1000
@@ -42,18 +42,24 @@ def image_callback(data):
     min_distance = float("inf")
 
     for contour in contours:
-        M = cv2.moments(contour)
-        if M["m00"] == 0:
-            continue
-        cX = int(M["m10"] / M["m00"])
-        cY = int(M["m01"] / M["m00"])
-        distance = ((cX - img_center_x) ** 2 + (cY - img_center_y) ** 2) ** 0.5
+        # 拟合轮廓
+        epsilon = 0.01 * cv2.arcLength(contour, True)
+        approx = cv2.approxPolyDP(contour, epsilon, True)
 
-        if (
-            min_distance == float("inf") or cv2.contourArea(contour) > 10000
-        ) and distance < min_distance:
-            min_distance = distance
-            closest_contour = contour
+        # 检查轮廓的边数量
+        if len(approx) < 10:
+            M = cv2.moments(contour)
+            if M["m00"] == 0:
+                continue
+            cX = int(M["m10"] / M["m00"])
+            cY = int(M["m01"] / M["m00"])
+            distance = ((cX - img_center_x) ** 2 + (cY - img_center_y) ** 2) ** 0.5
+
+            if (
+                min_distance == float("inf") or cv2.contourArea(contour) > 10000
+            ) and distance < min_distance:
+                min_distance = distance
+                closest_contour = contour
 
     box_msg = box_data()
 
