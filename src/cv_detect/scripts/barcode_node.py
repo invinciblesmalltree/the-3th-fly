@@ -48,12 +48,9 @@ def main():
 
             bar_msg = BarMsg()
             ret = decode_barcode(frame)
-            if ret is None:
+            if ret is None or ret < 1 or ret > 9:
                 bar_msg.n = -1
             else:
-                if ret < 1 or ret > 9:
-                    rate.sleep()
-                    continue
                 bar_msg.n= ret
                 rospy.loginfo('Barcode: %s', bar_msg.n)
 
