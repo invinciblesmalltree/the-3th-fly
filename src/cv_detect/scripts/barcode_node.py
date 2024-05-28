@@ -6,9 +6,7 @@ import cv2
 import numpy as np
 from pyzbar.pyzbar import decode
 import pyrealsense2 as rs
-from cv_bridge import CvBridge
 from cv_detect.msg import BarMsg
-from sensor_msgs.msg import Image
 
 def decode_barcode(image):
     barcodes = decode(image)
@@ -31,29 +29,32 @@ def main():
 
     d435_2cv2()
 
-    while True:
-        frames = pipeline.wait_for_frames()
-        color_frame = frames.get_color_frame()
-        depth_frame = frames.get_depth_frame()
+    try:
+        while not rospy.is_shutdown():
+            frames = pipeline.wait_for_frames()
+            color_frame = frames.get_color_frame()
+            depth_frame = frames.get_depth_frame()
 
-        if color_frame is not None and depth_frame is not None:
-            color_image = np.asanyarray(color_frame.get_data())
-            depth_image = np.asanyarray(depth_frame.get_data())
+            if color_frame is not None and depth_frame is not None:
+                color_image = np.asanyarray(color_frame.get_data())
+                depth_image = np.asanyarray(depth_frame.get_data())
+                
+                frame = color_image
+                height, width = frame.shape[:2]
+
+                bar_msg = BarMsg()
+                ret = decode_barcode(frame)
+                if ret is None or ret < 1 or ret > 9:
+                    bar_msg.n = -1
+                else:
+                    bar_msg.n= ret
+                    rospy.loginfo('Barcode: %s', bar_msg.n)
+
+                pub.publish(bar_msg)
+            rate.sleep()
             
-            frame = color_image
-            height, width = frame.shape[:2]
-
-            bar_msg = BarMsg()
-            ret = decode_barcode(frame)
-            if ret is None or ret < 1 or ret > 9:
-                bar_msg.n = -1
-            else:
-                bar_msg.n= ret
-                rospy.loginfo('Barcode: %s', bar_msg.n)
-
-            pub.publish(bar_msg)
-
-        rate.sleep()
+    except Exception as e:
+        rospy.logerr('Error: %s', e)
 
 if __name__ == '__main__':
     main()
