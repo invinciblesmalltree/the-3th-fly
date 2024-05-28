@@ -12,9 +12,7 @@
 #include <std_msgs/Int32.h>
 #include <vector>
 
-int current_region = -1;
-int mode = 1;
-ros::Time last_request;
+
 
 class region
 {
@@ -26,7 +24,7 @@ class region
         region(float center_x, float center_y, float length, float width):top(center_x, center_y, 1.8, M_PI),center_x(center_x),center_y(center_y),length(length),width(width) {}
 };
 
-void fly_to_scan(int &scan_mode, ros::Publisher &local_pos_pub, ros_tools::LidarPose &lidar_pose_data, int &mode, cv_detect::BarMsg barcode_data, ros::Rate &rate)
+void fly_to_scan(int &scan_mode, ros::Publisher &local_pos_pub, ros_tools::LidarPose &lidar_pose_data, cv_detect::BarMsg barcode_data, ros::Rate rate, int &mode=mode, target scanPoint=scanPoint, target scanPoint1=scanPoint1, target scanPoint2=scanPoint2, target top=top)
 {
     switch(scan_mode)
     {
@@ -129,10 +127,16 @@ bool check_region(ros_tools::LidarPose &lidar_pose_data, std::vector<region> &re
     }
 }
 
-float vector2theta(float x, float y) {
-    float angle = atan2(y, x);
-    return angle < 0 ? angle += 2 * M_PI : angle;
-}
+int current_region = -1;
+int mode = 1;
+ros::Time last_request;
+size_t target_index = 0;
+target debox_point(0, 0, 1.8, 0);
+int scan_mode=1;   
+target scanPoint(0, 0, 1.8, M_PI);      // 扫码起始点
+target scanPoint1(0, 0, 0.7, M_PI);     // 大箱子扫码点
+target scanPoint2(0, 0, 0.45, M_PI);    // 小箱子扫码点
+target top(0, 0, 1.8, M_PI);            // 箱子顶部
 
 mavros_msgs::State current_state;
 ros_tools::LidarPose lidar_pose_data;
@@ -191,15 +195,6 @@ int main(int argc, char **argv) {
     arm_cmd.request.value = true;
 
     ros::Time last_request = ros::Time::now();
-
-    size_t target_index = 0;
-    target debox_point(0, 0, 1.8, 0);
-    int scan_mode=1;    
-    target scanPoint(0, 0, 1.8, M_PI);// 扫码起始点
-    target scanPoint1(0, 0, 0.7, M_PI);    // 大箱子扫码点
-    target scanPoint2(0, 0, 0.45, M_PI);    // 小箱子扫码点
-    target top(0, 0, 1.8, M_PI);           // 箱子顶部
-
 
     for(int i=0;i<10;i++)
     {
@@ -299,7 +294,7 @@ int main(int argc, char **argv) {
             case 3:
                 {
                     ROS_INFO("Mode 3");
-                    fly_to_scan(scan_mode, local_pos_pub, lidar_pose_data, mode, barcode_data, rate);
+                    fly_to_scan(scan_mode, local_pos_pub, lidar_pose_data, barcode_data, rate);
                     break;
                 }
             case 4: // 返回巡防
