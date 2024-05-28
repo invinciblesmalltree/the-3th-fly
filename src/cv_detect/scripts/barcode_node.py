@@ -23,6 +23,14 @@ def d435_2cv2():
     config.enable_stream(rs.stream.color, 1280, 720, rs.format.bgr8, 30)
     config.enable_stream(rs.stream.depth, 1280, 720, rs.format.z16, 30)
     pipeline.start(config)
+
+def main():
+    rospy.init_node('barcode_node', anonymous=True)
+    pub = rospy.Publisher('barcode_msg', BarMsg, queue_size=10)
+    rate = rospy.Rate(20)
+
+    d435_2cv2()
+
     while True:
         frames = pipeline.wait_for_frames()
         color_frame = frames.get_color_frame()
@@ -31,19 +39,8 @@ def d435_2cv2():
         if color_frame is not None and depth_frame is not None:
             color_image = np.asanyarray(color_frame.get_data())
             depth_image = np.asanyarray(depth_frame.get_data())
-
-            return color_image, depth_image
-        
-        rospy.sleep(0.1)
-
-def main():
-    rospy.init_node('barcode_node', anonymous=True)
-    pub = rospy.Publisher('barcode_msg', BarMsg, queue_size=10)
-    rate = rospy.Rate(20)
-
-    while True:
-        frame, depth_image = d435_2cv2()
-        if frame is not None:
+            
+            frame = color_image
             height, width = frame.shape[:2]
 
             bar_msg = BarMsg()
