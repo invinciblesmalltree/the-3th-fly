@@ -28,11 +28,6 @@ class region
 
 void fly_to_scan(int &scan_mode, ros::Publisher &local_pos_pub, ros_tools::LidarPose &lidar_pose_data, int &mode, cv_detect::BarMsg barcode_data, ros::Rate &rate)
 {
-    target scanPoint(lidar_pose_data.x+0.8, lidar_pose_data.y, 1.8, M_PI); // 扫码起始点
-    target scanPoint1(lidar_pose_data.x+0.8, lidar_pose_data.y, 0.7, M_PI); // 大箱子扫码点
-    target scanPoint2(lidar_pose_data.x+0.8, lidar_pose_data.y, 0.45, M_PI); // 小箱子扫码点
-    target top(lidar_pose_data.x, lidar_pose_data.y, 1.8, M_PI);
-
     switch(scan_mode)
     {
         case 1: // 飞到scan点
@@ -198,8 +193,13 @@ int main(int argc, char **argv) {
     ros::Time last_request = ros::Time::now();
 
     size_t target_index = 0;
-    target debox_point(0, 0, 0, 0);
-    int scan_mode=1;
+    target debox_point(0, 0, 1.8, 0);
+    int scan_mode=1;    
+    target scanPoint(0, 0, 1.8, M_PI);// 扫码起始点
+    target scanPoint1(0, 0, 0.7, M_PI);    // 大箱子扫码点
+    target scanPoint2(0, 0, 0.45, M_PI);    // 小箱子扫码点
+    target top(0, 0, 1.8, M_PI);           // 箱子顶部
+
 
     for(int i=0;i<10;i++)
     {
@@ -257,7 +257,6 @@ int main(int argc, char **argv) {
                         ROS_INFO("Box detected!");
                         debox_point.x=lidar_pose_data.x;
                         debox_point.y=lidar_pose_data.y;
-                        debox_point.z=1.8;
                         ROS_INFO("Box: (%f, %f)", lidar_pose_data.x, lidar_pose_data.y);
                     }
                     else if (!targets[target_index].pos_check(lidar_pose_data))
@@ -277,15 +276,17 @@ int main(int argc, char **argv) {
                     while(!regions[current_region].top.pos_check(lidar_pose_data))
                     {
                         regions[current_region].top.fly_to_target(local_pos_pub);
-                        ROS_INFO("current region %d",current_region);
                         ros::spinOnce();
                         rate.sleep();
                     }
-                    ROS_INFO("Get top");
 
                     if(sqrt(pow(box_data.delta_x, 2) + pow(box_data.delta_y, 2)) < 100)
                     {
                         mode = 3;
+                        scanPoint.x = scanPoint1.x = scanPoint2.x = lidar_pose_data.x+0.8;
+                        scanPoint.y = scanPoint1.y = scanPoint2.y = lidar_pose_data.y;
+                        top.y = lidar_pose_data.y;
+                        top.x = lidar_pose_data.x;
                     }
                     else
                     {
