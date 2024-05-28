@@ -299,6 +299,7 @@ int main(int argc, char **argv) {
                 {
                     ROS_INFO("Mode 3");
                     fly_to_scan(scan_mode, local_pos_pub, lidar_pose_data, mode, barcode_data, rate);
+                    break;
                 }
             case 4: // 返回巡防
                 {
