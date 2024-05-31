@@ -251,6 +251,13 @@ int main(int argc, char **argv) {
                         debox_point.x=lidar_pose_data.x;
                         debox_point.y=lidar_pose_data.y;
                         ROS_INFO("Box: (%f, %f)", lidar_pose_data.x, lidar_pose_data.y);
+
+                        while(!regions[current_region].top.pos_check(lidar_pose_data))
+                        {
+                            regions[current_region].top.fly_to_target(local_pos_pub);
+                            ros::spinOnce();
+                            rate.sleep();
+                        }
                     }
                     else if (!targets[target_index].pos_check(lidar_pose_data))
                     {
@@ -266,13 +273,6 @@ int main(int argc, char **argv) {
             case 2: // 对准箱子，任务动作
                 {
                     ROS_INFO("Mode 2");
-                    while(!regions[current_region].top.pos_check(lidar_pose_data))
-                    {
-                        regions[current_region].top.fly_to_target(local_pos_pub);
-                        ros::spinOnce();
-                        rate.sleep();
-                    }
-
                     if(sqrt(pow(box_data.delta_x, 2) + pow(box_data.delta_y, 2)) < 100)
                     {
                         mode = 3;

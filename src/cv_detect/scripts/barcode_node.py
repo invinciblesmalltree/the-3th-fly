@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 #-*-coding:utf-8-*-
 import rospy
-import time
 import cv2
 import numpy as np
 from pyzbar.pyzbar import decode
@@ -35,13 +34,11 @@ def main():
             if color_frame is not None and depth_frame is not None:
                 color_image = np.asanyarray(color_frame.get_data())
                 depth_image = np.asanyarray(depth_frame.get_data())
-                
+            
                 frame = color_image
-                height, width = frame.shape[:2]
-
                 bar_msg = BarMsg()
                 ret = decode_barcode(frame)
-                if ret is None or ret < 1 or ret > 9:
+                if ret is None:
                     bar_msg.n = -1
                 else:
                     bar_msg.n= ret
@@ -54,4 +51,7 @@ def main():
         rospy.logerr('Error: %s', e)
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except rospy.ROSInterruptException:
+        pass
