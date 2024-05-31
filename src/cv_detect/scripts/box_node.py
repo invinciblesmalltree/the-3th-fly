@@ -63,7 +63,6 @@ def main():
                     pub.publish(box_msg)
 
                 rate.sleep()
-        rate.sleep()
 
 if __name__ == '__main__':
     try:

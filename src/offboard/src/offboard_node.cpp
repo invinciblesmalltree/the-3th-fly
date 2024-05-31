@@ -53,21 +53,21 @@ void fly_to_scan(int &scan_mode, ros::Publisher &local_pos_pub, ros_tools::Lidar
         case 2: // 定点扫码, 判断奇偶并返回scan点
         {
             ROS_INFO("Scan mode 2");
-            //if(barcode_data.n != -1 && barcode_data.n%2 == 1)
-            //{
-            //    scan_mode = 3; //奇数投掷
-            //}
-            //else if(barcode_data.n%2 == 0)
-            //{
-            //    while(!scanPoint.pos_check(lidar_pose_data))
-            //    {
-            //        scanPoint.fly_to_target(local_pos_pub);
-            //        ros::spinOnce();
-            //        rate.sleep();
-            //    }
-            //    mode = 4; //偶数返航
-            //    scan_mode = 1;
-            //}
+            if(barcode_data.n != -1 && barcode_data.n%2 == 1)
+            {
+                scan_mode = 3; //奇数投掷
+            }
+            else if(barcode_data.n%2 == 0)
+            {
+                while(!scanPoint.pos_check(lidar_pose_data))
+                {
+                    scanPoint.fly_to_target(local_pos_pub);
+                    ros::spinOnce();
+                    rate.sleep();
+                }
+                mode = 4; //偶数返航
+                scan_mode = 1;
+            }
 
             if(ros::Time::now()-last_request < ros::Duration(8))
             {
