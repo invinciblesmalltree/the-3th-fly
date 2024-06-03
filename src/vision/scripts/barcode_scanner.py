@@ -43,12 +43,18 @@ def callback(data):
     frame = increase_brightness(frame, 100)
     frame = replace_brown_with_white(frame)
     frame = binarize_image(frame)
-    barcodes = decode(frame)
+    try:
+        barcodes = decode(frame)
+    except Exception as e:
+        rospy.logerr(f"Barcode decoding failed: {e}")
+        pub.publish(-1)
+        return
     # cv.imshow("Barcode", frame)
     # cv.waitKey(1)
     if barcodes:
         barcode_data = barcodes[0].data.decode("utf-8")
         if not barcode_data.isdigit():
+            pub.publish(-1)
             return
         barcode_data = int(barcode_data)
         if 1 <= barcode_data <= 9:
