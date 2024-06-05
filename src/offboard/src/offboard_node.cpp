@@ -107,7 +107,8 @@ int main(int argc, char **argv) {
 
     size_t target_index = 0;
     int mode = 0;
-    bool region_vis[7]{}, first_box = true, has_thrown = false;
+    bool region_vis[7]{}, first_box = true, has_thrown = false,
+                          has_lighted = false;
     geometry_msgs::TwistStamped box_forward_vel;
     target box_center(0, 0, 1.8, 0), passed_point(0, 0, 1.8, -M_PI / 2),
         scan_point(0, 0, 1.8, -M_PI / 2);
@@ -171,8 +172,8 @@ int main(int argc, char **argv) {
                     mode = 1;
                     ROS_INFO("Mode 1");
                 }
-                if(is_region_center[target_index])
-                ROS_INFO("Region center %d reached", region_data);
+                if (is_region_center[target_index])
+                    ROS_INFO("Region center %d reached", region_data);
                 target_index++;
             }
         } else if (mode == 1) { // 飞往箱子中心
@@ -187,18 +188,21 @@ int main(int argc, char **argv) {
                     box_center.y = lidar_pose_data.y;
                     box_id = box_data.class_id;
                     scan_point.x = passed_point.x = box_center.x;
-                    scan_point.y = passed_point.y = box_center.y + 1;
+                    scan_point.y = passed_point.y = box_center.y + 0.7;
                     box_center.reached = scan_point.reached = false;
                     scan_point.z = box_id == 0 ? 0.75 : 0.48;
                     current_barcode = -1;
                     std_msgs::Int32 led_msg;
-                    led_msg.data = box_data.class_id;
+                    led_msg.data = has_lighted;
                     led_pub.publish(led_msg);
-                    ROS_INFO(box_data.class_id == 0 ? "Red led lighted"
-                                                    : "Green led lighted");
+                    ROS_INFO(has_lighted ? "Green led lighted"
+                                         : "Red led lighted");
+                    if (!has_lighted)
+                        has_lighted = true;
                     std_msgs::Int32 screen_data;
                     screen_data.data = region_data;
                     screen_data_pub.publish(screen_data);
+                    last_request = ros::Time::now();
                     mode = 2;
                     ROS_INFO("Mode 2");
                 }
@@ -212,6 +216,13 @@ int main(int argc, char **argv) {
                 if (~barcode_data) {
                     current_barcode = barcode_data;
                     ROS_INFO("Barcode: %d", current_barcode);
+                    passed_point.reached = false;
+                    mode = 3;
+                    ROS_INFO("Mode 3");
+                }
+                if (ros::Time::now() - last_request > ros::Duration(8.0)) {
+                    current_barcode = 0;
+                    ROS_INFO("Cannot find barcode");
                     passed_point.reached = false;
                     mode = 3;
                     ROS_INFO("Mode 3");

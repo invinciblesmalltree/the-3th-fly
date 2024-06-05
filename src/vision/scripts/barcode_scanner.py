@@ -43,6 +43,9 @@ def callback(data):
     frame = increase_brightness(frame, 100)
     frame = replace_brown_with_white(frame)
     frame = binarize_image(frame)
+    kernel = np.ones((3, 3), np.uint8)
+    frame = cv.dilate(frame, kernel, iterations=1)
+    frame = cv.erode(frame, kernel, iterations=1)
     try:
         barcodes = decode(frame)
     except Exception as e:
