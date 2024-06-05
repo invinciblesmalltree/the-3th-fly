@@ -21,8 +21,8 @@ def increase_brightness(image, value=30):
 
 def replace_brown_with_white(image):
     hsv = cv.cvtColor(image, cv.COLOR_BGR2HSV)
-    lower_brown = np.array([10, 100, 20])
-    upper_brown = np.array([20, 255, 200])
+    lower_brown = np.array([5, 25, 80])
+    upper_brown = np.array([25, 255, 200])
     mask = cv.inRange(hsv, lower_brown, upper_brown)
     image[mask > 0] = (255, 255, 255)
     return image
@@ -43,17 +43,14 @@ def callback(data):
     frame = increase_brightness(frame, 100)
     frame = replace_brown_with_white(frame)
     frame = binarize_image(frame)
-    kernel = np.ones((3, 3), np.uint8)
-    frame = cv.dilate(frame, kernel, iterations=1)
-    frame = cv.erode(frame, kernel, iterations=1)
     try:
         barcodes = decode(frame)
     except Exception as e:
         rospy.logerr(f"Barcode decoding failed: {e}")
         pub.publish(-1)
         return
-    # cv.imshow("Barcode", frame)
-    # cv.waitKey(1)
+    cv.imshow("Barcode", frame)
+    cv.waitKey(1)
     if barcodes:
         barcode_data = barcodes[0].data.decode("utf-8")
         if not barcode_data.isdigit():
