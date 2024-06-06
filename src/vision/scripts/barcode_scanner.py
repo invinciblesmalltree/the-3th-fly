@@ -9,19 +9,9 @@ import cv2 as cv
 import numpy as np
 
 
-def increase_brightness(image, value=30):
-    hsv = cv.cvtColor(image, cv.COLOR_BGR2HSV)
-    h, s, v = cv.split(hsv)
-    v = cv.add(v, value)
-    v = np.clip(v, 0, 255)
-    final_hsv = cv.merge((h, s, v))
-    brightened_image = cv.cvtColor(final_hsv, cv.COLOR_HSV2BGR)
-    return brightened_image
-
-
 def replace_brown_with_white(image):
     hsv = cv.cvtColor(image, cv.COLOR_BGR2HSV)
-    lower_brown = np.array([5, 25, 80])
+    lower_brown = np.array([5, 30, 80])
     upper_brown = np.array([25, 255, 200])
     mask = cv.inRange(hsv, lower_brown, upper_brown)
     image[mask > 0] = (255, 255, 255)
@@ -40,7 +30,6 @@ def callback(data):
         frame = bridge.imgmsg_to_cv2(data, "bgr8")
     except CvBridgeError as e:
         rospy.logerr(e)
-    frame = increase_brightness(frame, 100)
     frame = replace_brown_with_white(frame)
     frame = binarize_image(frame)
     try:
