@@ -189,7 +189,8 @@ int main(int argc, char **argv) {
                     box_id = box_data.class_id;
                     scan_point.x = passed_point.x = box_center.x;
                     scan_point.y = passed_point.y = box_center.y + 0.7;
-                    box_center.reached = scan_point.reached = false;
+                    scan_point.reached = passed_point.reached = box_center.reached =
+                        false;
                     scan_point.z = box_id == 0 ? 0.75 : 0.48;
                     current_barcode = -1;
                     std_msgs::Int32 led_msg;
@@ -202,7 +203,6 @@ int main(int argc, char **argv) {
                     std_msgs::Int32 screen_data;
                     screen_data.data = region_data;
                     screen_data_pub.publish(screen_data);
-                    last_request = ros::Time::now();
                     mode = 2;
                     ROS_INFO("Mode 2");
                 }
@@ -211,6 +211,7 @@ int main(int argc, char **argv) {
         } else if (mode == 2) { // 扫码
             if (!passed_point.pos_check(lidar_pose_data)) {
                 passed_point.fly_to_target(local_pos_pub);
+                last_request = ros::Time::now();
             } else {
                 scan_point.fly_to_target(local_pos_pub);
                 if (~barcode_data) {
