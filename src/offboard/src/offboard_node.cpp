@@ -113,6 +113,7 @@ int main(int argc, char **argv) {
     target box_center(0, 0, 1.8, 0), passed_point(0, 0, 1.8, -M_PI / 2),
         scan_point(0, 0, 1.8, -M_PI / 2);
     int box_id = -1, current_barcode;
+    int delay_time = 0;
 
     while (ros::ok() && !offboard_order) {
         ros::spinOnce();
@@ -172,8 +173,12 @@ int main(int argc, char **argv) {
                     mode = 1;
                     ROS_INFO("Mode 1");
                 }
-                if (is_region_center[target_index])
+                if (is_region_center[target_index]) {
                     ROS_INFO("Region center %d reached", region_data);
+                    last_request = ros::Time::now();
+                    delay_time = 1;
+                    mode = 4;
+                }
                 target_index++;
             }
         } else if (mode == 1) { // 飞往箱子中心
@@ -189,8 +194,8 @@ int main(int argc, char **argv) {
                     box_id = box_data.class_id;
                     scan_point.x = passed_point.x = box_center.x;
                     scan_point.y = passed_point.y = box_center.y + 0.7;
-                    scan_point.reached = passed_point.reached = box_center.reached =
-                        false;
+                    scan_point.reached = passed_point.reached =
+                        box_center.reached = false;
                     scan_point.z = box_id == 0 ? 0.75 : 0.48;
                     current_barcode = -1;
                     std_msgs::Int32 led_msg;
@@ -255,6 +260,11 @@ int main(int argc, char **argv) {
                     mode = 0;
                     ROS_INFO("Mode 0");
                 }
+            }
+        } else if (mode == 4) { // 延迟
+            if (ros::Time::now() - last_request > ros::Duration(delay_time)) {
+                mode = 0;
+                ROS_INFO("Mode 0");
             }
         }
 
