@@ -63,8 +63,8 @@ int main(int argc, char **argv) {
     ros::Publisher velocity_pub = nh.advertise<geometry_msgs::TwistStamped>(
         "/mavros/setpoint_velocity/cmd_vel", 10);
     ros::Publisher led_pub = nh.advertise<std_msgs::Int32>("/led", 10);
-    ros::Publisher steering_engine_pub =
-        nh.advertise<std_msgs::Int32>("/steering_engine", 10);
+    ros::Publisher servo_pub =
+        nh.advertise<std_msgs::Int32>("/servo", 10);
     ros::Publisher screen_data_pub =
         nh.advertise<std_msgs::Int32>("/screen_data", 10);
     ros::ServiceClient arming_client =
@@ -234,9 +234,9 @@ int main(int argc, char **argv) {
                         box_center.fly_to_target(local_pos_pub);
                     } else {
                         if (!has_thrown) {
-                            std_msgs::Int32 streering_engine_msg;
-                            streering_engine_msg.data = 1;
-                            steering_engine_pub.publish(streering_engine_msg);
+                            std_msgs::Int32 servo_msg;
+                            servo_msg.data = 1;
+                            servo_pub.publish(servo_msg);
                             ROS_INFO("Throwing");
                             last_request = ros::Time::now();
                             has_thrown = true;
@@ -252,7 +252,7 @@ int main(int argc, char **argv) {
                     ROS_INFO("Mode 0");
                 }
             }
-        } else if (mode == 4) { // 延迟
+        } else if (mode == 4) { // 延迟并检测箱子
             targets[target_index].fly_to_target(local_pos_pub);
             if (!region_vis[region_data] && ~box_data.class_id) {
                 ROS_INFO("Box detected, current region: %d", region_data);

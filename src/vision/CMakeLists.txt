@@ -183,7 +183,7 @@ catkin_install_python(
     PROGRAMS scripts/box_detect.py
              scripts/barcode_scanner.py
              scripts/led.py
-             scripts/steering_engine.py
+             scripts/servo.py
     DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
