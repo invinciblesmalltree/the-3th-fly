@@ -7,7 +7,7 @@ from std_msgs.msg import Int32
 
 
 def callback(msg):
-    pin = pins.get(msg)
+    pin = pins.get(msg.data)
     for _ in range(3):
         GPIO.output(pin, GPIO.HIGH)
         time.sleep(0.5)
@@ -26,6 +26,7 @@ pins = {
 GPIO.setmode(GPIO.BOARD)
 for pin in pins.values():
     GPIO.setup(pin, GPIO.OUT)
+    GPIO.output(pin, GPIO.LOW)
 
 rospy.spin()
 GPIO.cleanup()
