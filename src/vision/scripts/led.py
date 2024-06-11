@@ -19,8 +19,8 @@ rospy.init_node("led", anonymous=True)
 sub = rospy.Subscriber("led_data", Int32, callback)
 
 pins = {
-    0: 11,  # 红色LED
-    1: 12,  # 绿色LED
+    0: 19,  # 红色LED
+    1: 23,  # 绿色LED
 }
 
 GPIO.setmode(GPIO.BOARD)
