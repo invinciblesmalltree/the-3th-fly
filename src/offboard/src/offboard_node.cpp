@@ -113,7 +113,6 @@ int main(int argc, char **argv) {
     target box_center(0, 0, 1.8, 0), passed_point(0, 0, 1.8, -M_PI / 2),
         scan_point(0, 0, 1.8, -M_PI / 2);
     int box_id = -1, current_barcode;
-    int delay_time = 0;
 
     while (ros::ok() && !offboard_order) {
         ros::spinOnce();
@@ -165,21 +164,13 @@ int main(int argc, char **argv) {
                 targets[target_index].fly_to_target(local_pos_pub);
             } else {
                 ROS_INFO("Reached target %zu", target_index);
-                if (is_region_center[target_index] &&
-                    !region_vis[region_data] && ~box_data.class_id) {
-                    ROS_INFO("Box detected, current region: %d", region_data);
-                    box_forward_vel.twist.linear.x = -box_data.y / 500.0;
-                    box_forward_vel.twist.linear.y = -box_data.x / 500.0;
-                    mode = 1;
-                    ROS_INFO("Mode 1");
-                }
                 if (is_region_center[target_index]) {
                     ROS_INFO("Region center %d reached", region_data);
                     last_request = ros::Time::now();
-                    delay_time = 1;
                     mode = 4;
-                }
-                target_index++;
+                    ROS_INFO("Mode 4");
+                } else
+                    target_index++;
             }
         } else if (mode == 1) { // 飞往箱子中心
             box_forward_vel.twist.linear.z = 1.8 - lidar_pose_data.z;
@@ -262,7 +253,17 @@ int main(int argc, char **argv) {
                 }
             }
         } else if (mode == 4) { // 延迟
-            if (ros::Time::now() - last_request > ros::Duration(delay_time)) {
+            targets[target_index].fly_to_target(local_pos_pub);
+            if (!region_vis[region_data] && ~box_data.class_id) {
+                ROS_INFO("Box detected, current region: %d", region_data);
+                box_forward_vel.twist.linear.x = -box_data.y / 500.0;
+                box_forward_vel.twist.linear.y = -box_data.x / 500.0;
+                target_index++;
+                mode = 1;
+                ROS_INFO("Mode 1");
+            }
+            if (ros::Time::now() - last_request > ros::Duration(1.0)) {
+                target_index++;
                 mode = 0;
                 ROS_INFO("Mode 0");
             }
