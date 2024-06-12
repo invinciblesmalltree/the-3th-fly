@@ -10,7 +10,7 @@
     <node pkg="vision" type="barcode_scanner.py" name="barcode_scanner" />
     <node pkg="vision" type="region" name="region" />
     <node pkg="vision" type="led.py" name="led" />
-    <node pkg="vision" type="steering_engine.py" name="steering_engine" />
+    <node pkg="vision" type="servo.py" name="servo" />
     <node pkg="screen" type="screen.py" name="screen" />
     <node pkg="offboard" type="offboard_node" name="offboard_node" output="screen" />
 </launch>
