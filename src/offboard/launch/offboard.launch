@@ -8,6 +8,7 @@
     <node pkg="ros_tools" type="d435_node" name="d435_node" />
     <node pkg="vision" type="box_detect.py" name="box_detect" />
     <node pkg="vision" type="barcode_scanner.py" name="barcode_scanner" />
+    <node pkg="vision" type="region" name="region" />
     <node pkg="vision" type="led.py" name="led" />
     <node pkg="vision" type="steering_engine.py" name="steering_engine" />
     <node pkg="screen" type="screen.py" name="screen" />

@@ -256,8 +256,6 @@ int main(int argc, char **argv) {
             targets[target_index].fly_to_target(local_pos_pub);
             if (!region_vis[region_data] && ~box_data.class_id) {
                 ROS_INFO("Box detected, current region: %d", region_data);
-                box_forward_vel.twist.linear.x = -box_data.y / 500.0;
-                box_forward_vel.twist.linear.y = -box_data.x / 500.0;
                 target_index++;
                 mode = 1;
                 ROS_INFO("Mode 1");
