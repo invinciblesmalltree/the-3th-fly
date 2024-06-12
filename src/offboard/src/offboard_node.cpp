@@ -184,7 +184,7 @@ int main(int argc, char **argv) {
                     box_center.y = lidar_pose_data.y;
                     box_id = box_data.class_id;
                     scan_point.x = passed_point.x = box_center.x;
-                    scan_point.y = passed_point.y = box_center.y + 0.7;
+                    scan_point.y = passed_point.y = box_center.y + 0.8;
                     scan_point.reached = passed_point.reached =
                         box_center.reached = false;
                     scan_point.z = box_id == 0 ? 0.75 : 0.48;

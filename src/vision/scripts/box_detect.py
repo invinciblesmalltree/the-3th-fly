@@ -47,7 +47,7 @@ def image_callback(data):
         approx = cv2.approxPolyDP(contour, epsilon, True)
 
         # 检查轮廓的边数量
-        if len(approx) < 10:
+        if len(approx) < 6:
             M = cv2.moments(contour)
             if M["m00"] == 0:
                 continue
