@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
         "/mavros/setpoint_position/local", 10);
     ros::Publisher velocity_pub = nh.advertise<geometry_msgs::TwistStamped>(
         "/mavros/setpoint_velocity/cmd_vel", 10);
-    ros::Publisher led_pub = nh.advertise<std_msgs::Int32>("/led", 10);
+    ros::Publisher led_pub = nh.advertise<std_msgs::Int32>("/led_data", 10);
     ros::Publisher servo_pub =
         nh.advertise<std_msgs::Int32>("/servo", 10);
     ros::Publisher screen_data_pub =
